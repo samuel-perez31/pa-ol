@@ -43,6 +43,10 @@ export default function Tablero() {
   }, [])
 
   const accion = async (id, tipo) => {
+    if (tipo === 'refresh') {
+      cargar()
+      return
+    }
     await fetch(`${API}/api/pedidos/${id}/${tipo}`, { method: 'POST' })
     cargar()
   }

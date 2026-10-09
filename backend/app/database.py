@@ -46,11 +46,12 @@ def init_db():
     with server_engine.connect() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
         conn.commit()
+    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         if not session.exec(select(Herramienta)).first():
             for nombre, categoria in leer_inventario_excel():
-                session.add(Herramienta(nombre=nombre, categoria=categoria, disponible=True))
+                session.add(Herramienta(nombre=nombre, categoria=categoria, cantidad=1, disponible=True))
             session.commit()
 
 

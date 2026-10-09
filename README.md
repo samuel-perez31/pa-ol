@@ -8,14 +8,16 @@ Sistema web rápido para la gestión del pañol de una escuela técnica: los alu
 pa-ol/
 ├── requirements.txt
 ├── README.md
-└── app/
-    ├── __init__.py
-    ├── main.py          # FastAPI: rutas REST, WebSocket, vistas
-    ├── database.py      # Motor SQLite + seed de herramientas
-    ├── models.py        # Modelos SQLModel (Alumno, Herramienta, Pedido)
-    └── templates/
-        ├── solicitar.html   # Vista alumno (mobile-first, localStorage)
-        └── tablero.html     # Vista pañolera (tablero en vivo)
+├── backend/
+│   └── app/
+│       ├── __init__.py
+│       ├── main.py          # FastAPI: rutas REST, WebSocket, vistas
+│       ├── database.py      # Motor SQLite + seed de herramientas
+│       ├── models.py        # Modelos SQLModel (Alumno, Herramienta, Pedido)
+│       └── templates/
+│           ├── solicitar.html   # Vista alumno (mobile-first, localStorage)
+│           └── tablero.html     # Vista pañolera (tablero en vivo)
+└── frontend/                # (Opcional) Interfaz React/Vite si aplica
 ```
 
 ## Instalación
@@ -29,7 +31,14 @@ pip install -r requirements.txt
 
 ## Ejecución
 
+**Opción A: Desde la raíz del proyecto**
 ```bash
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Opción B: Desde el directorio backend**
+```bash
+cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 

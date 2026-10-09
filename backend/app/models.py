@@ -24,6 +24,7 @@ class Herramienta(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(max_length=120)
     categoria: str = Field(default="General", max_length=60)
+    cantidad: int = Field(default=1)
     disponible: bool = Field(default=True)
 
 
@@ -35,6 +36,7 @@ class Pedido(SQLModel, table=True):
     fecha_devolucion: Optional[datetime] = None
     estado: EstadoPedido = Field(default=EstadoPedido.PENDIENTE)
     detalle_items: List[dict] = Field(default_factory=list, sa_column=Column(MySQLJSON))
+    items_devueltos: List[dict] = Field(default_factory=list, sa_column=Column(MySQLJSON))  # items marcados como devueltos
     notas: Optional[str] = Field(default=None, max_length=500)
 
     def items(self) -> List[dict]:
@@ -45,3 +47,12 @@ class Pedido(SQLModel, table=True):
             except Exception:
                 return []
         return self.detalle_items or []
+
+    def items_devueltos_list(self) -> List[dict]:
+        if isinstance(self.items_devueltos, str):
+            import json
+            try:
+                return json.loads(self.items_devueltos)
+            except Exception:
+                return []
+        return self.items_devueltos or []
