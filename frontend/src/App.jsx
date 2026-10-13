@@ -6,7 +6,7 @@ import Tablero from './pages/Tablero.jsx'
 export default function App() {
   return (
     <BrowserRouter>
-      <nav className="bg-slate-800 text-white px-4 py-2 flex gap-4 text-sm">
+      <nav className="bg-primarydark text-white px-4 py-2 flex gap-4 text-sm">
         <Link to="/solicitar" className="hover:underline">📱 Solicitar</Link>
         <Link to="/tablero" className="hover:underline">📋 Tablero</Link>
       </nav>

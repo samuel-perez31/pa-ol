@@ -99,22 +99,32 @@ def pedido_to_dict(p: Pedido, session: Session) -> dict:
 
 
 def calcular_stock_disponible(herramienta_id: int, session: Session) -> int:
-    """Calcula el stock disponible de una herramienta (total - prestados)."""
+    """Calcula el stock disponible de una herramienta (total - prestados - pendientes)."""
     herramienta = session.get(Herramienta, herramienta_id)
     if not herramienta:
         return 0
     
     # Contar cuántas unidades están prestadas (estado PRESTADO)
     prestados = 0
-    pedidos = session.exec(select(Pedido).where(Pedido.estado == EstadoPedido.PRESTADO)).all()
-    for p in pedidos:
+    pedidos_prestados = session.exec(select(Pedido).where(Pedido.estado == EstadoPedido.PRESTADO)).all()
+    for p in pedidos_prestados:
         for item in p.items():
             # Buscar la herramienta por nombre para obtener su ID
             h = session.exec(select(Herramienta).where(Herramienta.nombre == item["nombre"])).first()
             if h and h.id == herramienta_id:
                 prestados += item["cantidad"]
     
-    return max(0, herramienta.cantidad - prestados)
+    # Contar cuántas unidades están en pedidos pendientes (estado PENDIENTE)
+    # Prioridad para quien pidió primero
+    pendientes = 0
+    pedidos_pendientes = session.exec(select(Pedido).where(Pedido.estado == EstadoPedido.PENDIENTE)).all()
+    for p in pedidos_pendientes:
+        for item in p.items():
+            h = session.exec(select(Herramienta).where(Herramienta.nombre == item["nombre"])).first()
+            if h and h.id == herramienta_id:
+                pendientes += item["cantidad"]
+    
+    return max(0, herramienta.cantidad - prestados - pendientes)
 
 
 def validar_stock_pedido(items: List[ItemIn], session: Session):
@@ -129,7 +139,7 @@ def validar_stock_pedido(items: List[ItemIn], session: Session):
         
         disponible = calcular_stock_disponible(herramienta.id, session)
         if item.cantidad > disponible:
-            raise HTTPException(400, f"Stock no disponible para '{item.nombre}': {disponible} unidad(es) disponible(s) de {herramienta.cantidad} total(es)")
+            raise HTTPException(400, "Material no disponible en stock")
 
 
 @app.get("/api/herramientas")
@@ -175,12 +185,17 @@ async def crear_pedido(data: PedidoIn, session: Session = Depends(get_session)):
 
 
 @app.get("/api/pedidos")
-def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, session: Session = Depends(get_session)):
-    hoy = date.today()
+def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, fecha: Optional[str] = None, session: Session = Depends(get_session)):
+    # Si no se pasa fecha, usar hoy
+    try:
+        fecha_filtro = date.fromisoformat(fecha) if fecha else date.today()
+    except ValueError:
+        fecha_filtro = date.today()
+    
     pedidos = session.exec(select(Pedido)).all()
     result = []
     for p in pedidos:
-        if p.fecha_solicitud and p.fecha_solicitud.date() != hoy:
+        if p.fecha_solicitud and p.fecha_solicitud.date() != fecha_filtro:
             continue
         est = p.estado.value if isinstance(p.estado, EstadoPedido) else p.estado
         if estado and est != estado:
@@ -188,11 +203,26 @@ def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, sessio
         d = pedido_to_dict(p, session)
         if q:
             ql = q.lower()
-            if ql not in d["alumno"].lower() and ql not in d["dni"]:
+            # Buscar en alumno, DNI, o en los nombres de las herramientas
+            match_alumno = ql in d["alumno"].lower()
+            match_dni = ql in d["dni"]
+            match_herramienta = any(ql in item["nombre"].lower() for item in d["items"])
+            if not (match_alumno or match_dni or match_herramienta):
                 continue
         result.append(d)
     result.sort(key=lambda d: d["id"], reverse=True)
     return result
+
+
+@app.get("/api/pedidos/fechas")
+def listar_fechas_pedidos(session: Session = Depends(get_session)):
+    """Devuelve lista de fechas que tienen pedidos, ordenadas descendente."""
+    pedidos = session.exec(select(Pedido)).all()
+    fechas = set()
+    for p in pedidos:
+        if p.fecha_solicitud:
+            fechas.add(p.fecha_solicitud.date().isoformat())
+    return sorted(list(fechas), reverse=True)
 
 
 @app.post("/api/pedidos/{pedido_id}/entregar")
@@ -238,9 +268,13 @@ async def toggle_item_devuelto(pedido_id: int, data: ItemDevueltoIn, session: Se
         # Si no existe, lo agregamos (tachar)
         items_devueltos.append({"nombre": data.nombre, "cantidad": data.cantidad})
     
+    # Forzar actualización del campo JSON
+    from sqlalchemy.orm.attributes import flag_modified
     p.items_devueltos = items_devueltos
+    flag_modified(p, "items_devueltos")
     session.add(p)
     session.commit()
+    session.refresh(p)
     await manager.broadcast("update")
     return pedido_to_dict(p, session)
 
@@ -263,24 +297,29 @@ async def cargar_devolucion(pedido_id: int, session: Session = Depends(get_sessi
     if items_devueltos_count == 0:
         tipo_devolucion = "ninguno"
         color = "rojo"
+        emoji = "🔴"
     elif items_devueltos_count == total_items:
         tipo_devolucion = "completa"
         color = "verde"
+        emoji = "🟢"
     else:
         tipo_devolucion = "parcial"
         color = "amarillo"
+        emoji = "🟡"
     
-    # Devolver al stock los items marcados como devueltos
+    # Devolver al stock SOLO los items marcados como devueltos
     for item_devuelto in items_devueltos:
         herramienta = session.exec(select(Herramienta).where(Herramienta.nombre == item_devuelto["nombre"])).first()
         if herramienta:
             herramienta.cantidad += item_devuelto.get("cantidad", 1)
             session.add(herramienta)
     
-    # Marcar pedido como devuelto
+    # TODAS las devoluciones (completa, parcial, ninguna) pasan a DEVUELTO
+    # Los items no devueltos quedan marcados como "no devueltos" en la lista
     p.estado = EstadoPedido.DEVUELTO
     p.fecha_devolucion = datetime.now()
-    p.notas = (p.notas or "") + f"\n[Devolución {tipo_devolucion.upper()} - {color}]"
+    
+    p.notas = (p.notas or "") + f"\n[Devolución {tipo_devolucion.upper()} {emoji}]"
     session.add(p)
     session.commit()
     await manager.broadcast("update")
@@ -289,6 +328,7 @@ async def cargar_devolucion(pedido_id: int, session: Session = Depends(get_sessi
         **pedido_to_dict(p, session),
         "tipo_devolucion": tipo_devolucion,
         "color": color,
+        "emoji": emoji,
         "items_devueltos": items_devueltos_count,
         "total_items": total_items
     }

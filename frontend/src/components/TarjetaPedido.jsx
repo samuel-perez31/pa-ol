@@ -4,7 +4,24 @@ import { API } from '../api.js'
 export default function TarjetaPedido({ pedido, onAccion }) {
   const esPendiente = pedido.estado === 'PENDIENTE'
   const esPrestado = pedido.estado === 'PRESTADO'
-  const borde = esPendiente ? 'border-amber-400' : esPrestado ? 'border-blue-400' : 'border-green-400'
+  const esDevuelto = pedido.estado === 'DEVUELTO'
+  
+  let borde = esPendiente ? 'border-warning' : esPrestado ? 'border-primary' : 'border-success'
+  let bgColor = ''
+  
+  if (esDevuelto && pedido.notas) {
+    if (pedido.notas.includes('🟢')) {
+      borde = 'border-success'
+      bgColor = 'bg-successlight'
+    } else if (pedido.notas.includes('🟡')) {
+      borde = 'border-warning'
+      bgColor = 'bg-warninglight'
+    } else if (pedido.notas.includes('🔴')) {
+      borde = 'border-danger'
+      bgColor = 'bg-warninglight'
+    }
+  }
+
   const [cargandoDevolucion, setCargandoDevolucion] = useState(false)
 
   const toggleItem = async (nombre, cantidad) => {
@@ -26,16 +43,10 @@ export default function TarjetaPedido({ pedido, onAccion }) {
       })
       const data = await res.json()
       
-      // Mostrar feedback visual según tipo de devolución
       const mensajes = {
         completa: '✅ Devolución COMPLETA - Todos los items devueltos (Stock actualizado)',
         parcial: '⚠️ Devolución PARCIAL - Algunos items faltan por devolver',
         ninguno: '❌ Devolución NINGUNA - No se devolvió ningún item'
-      }
-      const colores = {
-        completa: 'bg-green-100 text-green-800 border-green-300',
-        parcial: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-        ninguno: 'bg-red-100 text-red-800 border-red-300'
       }
       
       alert(`${mensajes[data.tipo_devolucion]}\n\nItems devueltos: ${data.items_devueltos} de ${data.total_items}`)
@@ -48,20 +59,20 @@ export default function TarjetaPedido({ pedido, onAccion }) {
   }
 
   return (
-    <div className={`bg-white rounded-xl p-4 shadow border-l-4 ${borde} ${!esPendiente && !esPrestado ? 'opacity-80' : ''}`}>
-      <div className="font-bold">{pedido.alumno} <span className="text-xs text-slate-400">DNI {pedido.dni}</span></div>
-      <div className="text-xs text-slate-500">{pedido.curso} · 🕒 {esPrestado ? `Salió ${pedido.fecha_hora_entrega}` : esPendiente ? pedido.fecha_hora_solicitud : `Devuelto ${pedido.fecha_hora_devolucion}`}</div>
+    <div className={`bg-white rounded-xl p-4 shadow border-l-4 ${borde} ${bgColor} ${!esPendiente && !esPrestado && !esDevuelto ? 'opacity-80' : ''}`}>
+      <div className="font-bold text-primarydark">{pedido.alumno} <span className="text-xs text-neutral400">DNI {pedido.dni}</span></div>
+      <div className="text-xs text-neutral500">{pedido.curso} · 🕒 {esPrestado ? `Salió ${pedido.fecha_hora_entrega}` : esPendiente ? pedido.fecha_hora_solicitud : `Devuelto ${pedido.fecha_hora_devolucion}`}</div>
       
-      <ul className="text-sm text-slate-700 mt-1 space-y-1">
+      <ul className="text-sm text-primary mt-1 space-y-1">
         {pedido.items.map((item, idx) => (
           <li key={idx} className="flex items-center gap-2">
-            <span className={item.devuelto ? 'line-through text-slate-400' : ''}>
+            <span className={item.devuelto ? 'line-through text-neutral400' : ''}>
               • {item.cantidad}× {item.nombre}
             </span>
             {esPrestado && (
               <button
                 onClick={() => toggleItem(item.nombre, item.cantidad)}
-                className={`ml-2 px-2 py-0.5 text-xs rounded ${item.devuelto ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                className={`ml-2 px-2 py-0.5 text-xs rounded ${item.devuelto ? 'bg-successlight text-success' : 'bg-neutral100 text-neutral600 hover:bg-neutral200'}`}
                 title={item.devuelto ? 'Destachar (marcar como no devuelto)' : 'Tachar (marcar como devuelto)'}
               >
                 {item.devuelto ? '✓ Devuelto' : '✎ Tachar'}
@@ -71,11 +82,11 @@ export default function TarjetaPedido({ pedido, onAccion }) {
         ))}
       </ul>
       
-      {pedido.notas && <p className="text-xs text-slate-500 italic mt-1">{pedido.notas}</p>}
+      {pedido.notas && <p className="text-xs text-neutral500 italic mt-1">{pedido.notas}</p>}
       
       {esPendiente && (
         <button onClick={() => onAccion(pedido.id, 'entregar')}
-          className="mt-3 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg">
+          className="mt-3 w-full bg-warning hover:bg-danger text-white font-bold py-2 rounded-lg transition">
           ✔ Confirmar Entrega
         </button>
       )}
@@ -83,14 +94,14 @@ export default function TarjetaPedido({ pedido, onAccion }) {
       {esPrestado && (
         <div className="mt-3 space-y-2">
           <button onClick={() => onAccion(pedido.id, 'devolver')}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg">
+            className="w-full bg-success hover:bg-primary-dark text-white font-bold py-2 rounded-lg transition">
             ↩ Marcar como Devuelto (Completo)
           </button>
           
           <button 
             onClick={cargarDevolucion}
             disabled={cargandoDevolucion}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primarydark text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition disabled:bg-neutral300 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{display: cargandoDevolucion ? 'block' : 'none'}}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

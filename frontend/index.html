@@ -4,9 +4,48 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Pañol - Gestión Ágil</title>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Tus 6 colores exactos - nombres simples sin guiones
+            milpa: '#679460',
+            freshmint: '#2A5942',
+            opulentgreen: '#0E3225',
+            glendale: '#9FBF8B',
+            tandoorired: '#D05865',
+            rarered: '#D70A34',
+            // Alias semánticos - nombres simples
+            primary: '#2A5942',       // freshmint
+            primarydark: '#0E3225',   // opulentgreen
+            primarylight: '#679460',  // milpa
+            primarylighter: '#9FBF8B', // glendale
+            danger: '#D05865',        // tandoorired
+            dangerbright: '#D70A34',  // rarered
+            success: '#679460',       // milpa
+            successlight: '#9FBF8B',  // glendale
+            warning: '#D05865',       // tandoorired
+            warninglight: '#FDE8E8',
+            // Neutral plano (sin escala numérica)
+            neutral50: '#F5F7F5',
+            neutral100: '#E8EDE8',
+            neutral200: '#D1DAD1',
+            neutral300: '#A3B8A3',
+            neutral400: '#7A947A',
+            neutral500: '#5A755A',
+            neutral600: '#455A45',
+            neutral700: '#364536',
+            neutral800: '#2A5942',
+            neutral900: '#0E3225',
+          }
+        }
+      }
+    }
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100">
+<body class="bg-neutral50">
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

@@ -8,6 +8,9 @@ export default function Solicitar() {
   const [conteos, setConteos] = useState({})
   const [notas, setNotas] = useState('')
   const [msg, setMsg] = useState(null)
+  const [alertaStock, setAlertaStock] = useState(false)
+
+  const cerrarAlerta = () => setAlertaStock(false)
 
   const enviar = async () => {
     const items = Object.entries(conteos)
@@ -15,10 +18,10 @@ export default function Solicitar() {
       .map(([, v]) => ({ nombre: v.nombre, cantidad: v.cantidad }))
 
     if (!datos.dni || !datos.nombre || !datos.curso || !datos.division) {
-      setMsg({ texto: '⚠️ Completá DNI, Nombre, Curso y División', clase: 'bg-amber-100 text-amber-800' }); return
+      setMsg({ texto: '⚠️ Completá DNI, Nombre, Curso y División', clase: 'bg-warninglight text-dangerbright' }); return
     }
     if (items.length === 0 && !notas.trim()) {
-      setMsg({ texto: '⚠️ Agregá al menos un ítem', clase: 'bg-amber-100 text-amber-800' }); return
+      setMsg({ texto: '⚠️ Agregá al menos un ítem', clase: 'bg-warninglight text-dangerbright' }); return
     }
 
     try {
@@ -26,7 +29,7 @@ export default function Solicitar() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dni: datos.dni,                          // limpio, solo dígitos
+          dni: datos.dni,
           nombre: datos.nombre,
           curso: `${datos.curso} ${datos.division}`,
           items,
@@ -34,33 +37,55 @@ export default function Solicitar() {
         }),
       })
       if (res.ok) {
-        setMsg({ texto: '✅ ¡Pedido enviado! Acercate a la ventanilla.', clase: 'bg-green-100 text-green-800' })
+        setMsg({ texto: '✅ ¡Pedido enviado! Acercate a la ventanilla.', clase: 'bg-successlight text-success' })
         setConteos({})
         setNotas('')
         setTimeout(() => setMsg(null), 5000)
       } else {
         const err = await res.json().catch(() => ({}))
-        setMsg({ texto: `❌ Error ${res.status}: ${JSON.stringify(err.detail ?? '')}`, clase: 'bg-red-100 text-red-800' })
+        const detalle = err.detail ?? ''
+        if (res.status === 400 && detalle.includes('Stock no disponible')) {
+          setAlertaStock(true)
+        } else {
+          setMsg({ texto: `❌ Error ${res.status}: ${JSON.stringify(detalle)}`, clase: 'bg-warninglight text-dangerbright' })
+        }
       }
     } catch (e) {
-      setMsg({ texto: '❌ No se pudo conectar con el pañol.', clase: 'bg-red-100 text-red-800' })
+      setMsg({ texto: '❌ No se pudo conectar con el pañol.', clase: 'bg-warninglight text-dangerbright' })
     }
   }
 
   return (
     <div className="max-w-md mx-auto p-4">
-      <h1 className="text-2xl font-bold text-slate-800 mb-4">🔧 Solicitar Material</h1>
+      <h1 className="text-2xl font-bold text-primarydark mb-4">🔧 Solicitar Material</h1>
       <FormularioAlumno datos={datos} setDatos={setDatos} />
-      <h2 className="text-lg font-bold text-slate-700 mb-2">Herramientas</h2>
+      <h2 className="text-lg font-bold text-primary mb-2">Herramientas</h2>
       <SelectorHerramientas conteos={conteos} setConteos={setConteos} />
-      <label className="block text-sm font-semibold text-slate-600">Otros materiales / Insumos</label>
+      <label className="block text-sm font-semibold text-primary mb-2">Otros materiales / Insumos</label>
       <textarea rows="2" value={notas} onChange={e => setNotas(e.target.value)}
-        className="w-full border rounded-lg p-3 mb-4" placeholder="Ej: 2m de cable 1.5..." />
+        className="w-full border border-neutral300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Ej: 2m de cable 1.5..." />
       <button onClick={enviar}
-        className="w-full bg-blue-600 text-white text-xl font-bold py-4 rounded-xl shadow active:scale-95 transition">
+        className="w-full bg-primary text-white text-xl font-bold py-4 rounded-xl shadow active:scale-95 transition hover:bg-primarydark">
         📦 Solicitar Material
       </button>
       {msg && <div className={`mt-4 p-4 rounded-xl text-center font-bold ${msg.clase}`}>{msg.texto}</div>}
+      
+      {alertaStock && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={cerrarAlerta}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl text-center" onClick={e => e.stopPropagation()}>
+            <div className="text-6xl mb-4">📦</div>
+            <h2 className="text-2xl font-bold text-danger mb-2">Material no disponible</h2>
+            <p className="text-lg text-primary mb-6">El material no está en stock</p>
+            <p className="text-sm text-neutral500 mb-6">Ya fue solicitado por otro alumno o no hay unidades disponibles.</p>
+            <button 
+              onClick={cerrarAlerta}
+              className="w-full bg-danger text-white font-bold py-3 rounded-xl hover:bg-dangerbright transition"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
