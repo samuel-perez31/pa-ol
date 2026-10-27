@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -31,14 +31,30 @@ def on_startup():
 class ConnectionManager:
     def __init__(self):
         self.active: List[WebSocket] = []
+        # id de pestaña -> ws. Si una pestaña se reconecta, se cierra la anterior
+        # para que una sola pestaña nunca tenga varias conexiones vivas.
+        self.sesiones: dict = {}
 
-    async def connect(self, ws: WebSocket):
+    async def connect(self, ws: WebSocket, sesion: str = None):
         await ws.accept()
         self.active.append(ws)
+        if sesion:
+            anterior = self.sesiones.get(sesion)
+            if anterior is not None and anterior is not ws:
+                if anterior in self.active:
+                    self.active.remove(anterior)
+                try:
+                    await anterior.close()
+                except Exception:
+                    pass
+            self.sesiones[sesion] = ws
 
     def disconnect(self, ws: WebSocket):
         if ws in self.active:
             self.active.remove(ws)
+        for k, v in list(self.sesiones.items()):
+            if v is ws:
+                self.sesiones.pop(k, None)
 
     async def broadcast(self, message: str = "update"):
         for ws in list(self.active):
@@ -95,6 +111,10 @@ def pedido_to_dict(p: Pedido, session: Session) -> dict:
         "fecha_hora_solicitud": p.fecha_solicitud.strftime("%H:%M") if p.fecha_solicitud else None,
         "fecha_hora_entrega": p.fecha_entrega.strftime("%H:%M") if p.fecha_entrega else None,
         "fecha_hora_devolucion": p.fecha_devolucion.strftime("%H:%M") if p.fecha_devolucion else None,
+        # Fechas completas en ISO (para filtros por día y contadores "hoy")
+        "fecha_solicitud": p.fecha_solicitud.isoformat() if p.fecha_solicitud else None,
+        "fecha_entrega": p.fecha_entrega.isoformat() if p.fecha_entrega else None,
+        "fecha_devolucion": p.fecha_devolucion.isoformat() if p.fecha_devolucion else None,
     }
 
 
@@ -180,22 +200,20 @@ async def crear_pedido(data: PedidoIn, session: Session = Depends(get_session)):
     session.add(pedido)
     session.commit()
     session.refresh(pedido)
-    await manager.broadcast("update")
+    await manager.broadcast("nuevo_pedido")
     return pedido_to_dict(pedido, session)
 
 
 @app.get("/api/pedidos")
 def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, fecha: Optional[str] = None, session: Session = Depends(get_session)):
-    # Si no se pasa fecha, usar hoy
-    try:
-        fecha_filtro = date.fromisoformat(fecha) if fecha else date.today()
-    except ValueError:
-        fecha_filtro = date.today()
+    # Si no se pasa fecha, no filtrar por fecha (devuelve todos los históricos)
+    fecha_filtro = date.fromisoformat(fecha) if fecha else None
     
     pedidos = session.exec(select(Pedido)).all()
     result = []
     for p in pedidos:
-        if p.fecha_solicitud and p.fecha_solicitud.date() != fecha_filtro:
+        # Si hay filtro de fecha, aplicar filtrado; si no, traer todos
+        if fecha_filtro and p.fecha_solicitud and p.fecha_solicitud.date() != fecha_filtro:
             continue
         est = p.estado.value if isinstance(p.estado, EstadoPedido) else p.estado
         if estado and est != estado:
@@ -214,6 +232,18 @@ def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, fecha:
     return result
 
 
+@app.get("/api/pedidos/ids")
+def listar_ids_estados(session: Session = Depends(get_session)):
+    """Lista liviana (id + estado) de todos los pedidos.
+    Sirve para detectar cambios reales y disparar el sonido sólo cuando
+    entra un pedido nuevo o se procesa uno."""
+    filas = session.exec(select(Pedido.id, Pedido.estado)).all()
+    return [
+        {"id": f[0], "estado": f[1].value if isinstance(f[1], EstadoPedido) else f[1]}
+        for f in filas
+    ]
+
+
 @app.get("/api/pedidos/fechas")
 def listar_fechas_pedidos(session: Session = Depends(get_session)):
     """Devuelve lista de fechas que tienen pedidos, ordenadas descendente."""
@@ -225,6 +255,23 @@ def listar_fechas_pedidos(session: Session = Depends(get_session)):
     return sorted(list(fechas), reverse=True)
 
 
+@app.post("/api/pedidos/{pedido_id}/pasar-a-taller")
+async def pasar_a_taller(pedido_id: int, session: Session = Depends(get_session)):
+    """Pasa un pedido confirmado desde 'Pendientes' a 'En taller' para que empiecen a tachar/devolver."""
+    p = session.get(Pedido, pedido_id)
+    if not p:
+        raise HTTPException(404, "Pedido no encontrado")
+    if p.estado != EstadoPedido.PRESTADO:
+        raise HTTPException(400, "El pedido debe estar en PRESTADO para pasar a taller")
+    # Marcamos que ya pasó a taller (se usa para separar las secciones)
+    if not p.notas or "[EN_TALLER]" not in p.notas:
+        p.notas = (p.notas + " " if p.notas else "") + "[EN_TALLER]"
+    session.add(p)
+    session.commit()
+    await manager.broadcast("procesado")
+    return pedido_to_dict(p, session)
+
+
 @app.post("/api/pedidos/{pedido_id}/entregar")
 async def entregar(pedido_id: int, session: Session = Depends(get_session)):
     p = session.get(Pedido, pedido_id)
@@ -234,7 +281,7 @@ async def entregar(pedido_id: int, session: Session = Depends(get_session)):
     p.fecha_entrega = datetime.now()
     session.add(p)
     session.commit()
-    await manager.broadcast("update")
+    await manager.broadcast("procesado")
     return pedido_to_dict(p, session)
 
 
@@ -247,7 +294,7 @@ async def devolver(pedido_id: int, session: Session = Depends(get_session)):
     p.fecha_devolucion = datetime.now()
     session.add(p)
     session.commit()
-    await manager.broadcast("update")
+    await manager.broadcast("procesado")
     return pedido_to_dict(p, session)
 
 
@@ -275,7 +322,7 @@ async def toggle_item_devuelto(pedido_id: int, data: ItemDevueltoIn, session: Se
     session.add(p)
     session.commit()
     session.refresh(p)
-    await manager.broadcast("update")
+    await manager.broadcast("items")
     return pedido_to_dict(p, session)
 
 
@@ -322,7 +369,7 @@ async def cargar_devolucion(pedido_id: int, session: Session = Depends(get_sessi
     p.notas = (p.notas or "") + f"\n[Devolución {tipo_devolucion.upper()} {emoji}]"
     session.add(p)
     session.commit()
-    await manager.broadcast("update")
+    await manager.broadcast("procesado")
     
     return {
         **pedido_to_dict(p, session),
@@ -334,9 +381,34 @@ async def cargar_devolucion(pedido_id: int, session: Session = Depends(get_sessi
     }
 
 
+@app.get("/api/ws-debug")
+def ws_debug():
+    """Cuántas conexiones WebSocket hay abiertas ahora (diagnóstico)."""
+    return {"conexiones_ws": len(manager.active), "sesiones": len(manager.sesiones)}
+
+
+@app.get("/api/version")
+def version_app():
+    """Versión del frontend servido. El navegador la consulta y se recarga solo
+    si cambió el bundle (evita que quede corriendo código viejo)."""
+    carpeta = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist" / "assets"
+    nombres = []
+    try:
+        for f in carpeta.iterdir():
+            if f.suffix == ".js":
+                nombres.append(f.name)
+    except OSError:
+        pass
+    return JSONResponse(
+        {"version": max(nombres) if nombres else ""},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.websocket("/ws/tablero")
 async def ws_tablero(ws: WebSocket):
-    await manager.connect(ws)
+    sesion = ws.query_params.get("s")
+    await manager.connect(ws, sesion)
     try:
         while True:
             await ws.receive_text()
@@ -357,5 +429,9 @@ if FRONTEND_DIR.exists():
         # Servir index.html para todas las demás rutas (SPA routing)
         index_file = FRONTEND_DIR / "index.html"
         if index_file.exists():
-            return FileResponse(index_file)
+            # Sin caché: el navegador siempre debe tomar el bundle nuevo
+            return FileResponse(
+                index_file,
+                headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+            )
         raise HTTPException(404, "Frontend no construido")

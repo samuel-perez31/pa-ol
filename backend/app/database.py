@@ -46,7 +46,8 @@ def init_db():
     with server_engine.connect() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
         conn.commit()
-    SQLModel.metadata.drop_all(engine)
+    # NO borrar tablas existentes: create_all solo crea las que faltan.
+    # (Antes se hacía drop_all en cada arranque y se perdían los datos.)
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         if not session.exec(select(Herramienta)).first():
