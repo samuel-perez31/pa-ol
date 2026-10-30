@@ -51,8 +51,12 @@ export default function SelectorHerramientas({ conteos, setConteos }) {
   const coincidencias = useMemo(() => {
     const q = normalizar(busqueda.trim())
     if (!q) return []
-    return herramientas.filter(h => normalizar(h.nombre).includes(q))
-  }, [busqueda, herramientas])
+    return herramientas.filter(h => {
+      const yaSeleccionada = (conteos[h.id]?.cantidad || 0) > 0
+      if (yaSeleccionada) return false
+      return normalizar(h.nombre).includes(q)
+    })
+  }, [busqueda, herramientas, conteos])
 
   // Mostrar todas las coincidencias al buscar. Si no hay stock queda deshabilitado.
   const resultados = useMemo(
