@@ -3,7 +3,7 @@ import React from 'react'
 // Textura de papel (ruido sutil) reutilizada en las dos mitades
 const RUIDO = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E\")"
 
-const COLORES_POSTIT = ['bg-[#E5DCB7]', 'bg-[#C9C6A1]', 'bg-[#BBB88C]', 'bg-[#D6D2AE]', 'bg-[#C2BF97]']
+const COLORES_POSTIT = ['bg-[#EFEAA7]']
 const ROTACIONES = ['-rotate-1', 'rotate-1', '-rotate-[0.8deg]', 'rotate-[0.8deg]', '-rotate-[0.5deg]', 'rotate-[0.5deg]']
 
 const fechaCorta = (iso) => {
@@ -108,18 +108,28 @@ const resumenItems = (p, max = 3) => {
   return items.length > max ? `${texto} · +${items.length - max}` : texto
 }
 
+const notasLimpiasDevuelto = (p) => {
+  if (!p?.notas) return ''
+  let n = String(p.notas)
+  n = n.replace(/\[EN_TALLER\]/g, '')
+  const idx = n.indexOf('[Devolución')
+  if (idx >= 0) n = n.slice(0, idx)
+  n = n.replace(/\r/g, ' ')
+  n = n.replace(/\n+/g, ' ')
+  return n.trim()
+}
+
 // Ficha sobria que va sobre la hoja de archivos (mitad izquierda)
 function FichaArchivo({ pedido: p }) {
   const items = p.items || []
+  const notas = notasLimpiasDevuelto(p)
   return (
-    <div className="relative bg-[#BBB88C] border border-[rgba(99,119,88,0.5)] p-3 shadow-[0_10px_24px_rgba(7,22,40,0.15)]">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="font-['Patrick_Hand'] text-base text-[#071628]">Pedido {p.id}</div>
-        <div className="text-[10px] uppercase tracking-[4px] text-[#071628] truncate">
-          {String(p.alumno || '').split(',')[0]}
-        </div>
+    <div className="relative bg-[#EFEAA7] border border-[rgba(99,119,88,0.5)] p-3 shadow-[0_10px_24px_rgba(7,22,40,0.15)]">
+      <div className="font-['Patrick_Hand'] text-base leading-tight text-[#071628]">Pedido {p.id}</div>
+      <div className="mt-0.5 break-words font-['Patrick_Hand'] text-[13px] leading-tight text-[#071628]">
+        {p.alumno}
       </div>
-      <div className="mt-1 text-xs text-[#071628]">
+      <div className="mt-0.5 text-[10px] text-[#071628]">
         {fechaCorta(p.fecha_devolucion || p.fecha_solicitud)}
         {horaDe(p) ? ` · ${horaDe(p)}` : ''}
       </div>
@@ -129,6 +139,11 @@ function FichaArchivo({ pedido: p }) {
         ))}
         {items.length > 3 && <li className="text-[#071628]">+ {items.length - 3} más</li>}
       </ul>
+      {notas && (
+        <div className="mt-2 break-words text-[11px] leading-snug text-[#071628]">
+          <span className="italic">Otros materiales / Insumos:</span> {notas}
+        </div>
+      )}
     </div>
   )
 }
@@ -137,6 +152,7 @@ function FichaArchivo({ pedido: p }) {
 function PostItDevuelto({ pedido: p, indice: i }) {
   const color = COLORES_POSTIT[i % COLORES_POSTIT.length]
   const rot = ROTACIONES[i % ROTACIONES.length]
+  const notas = notasLimpiasDevuelto(p)
   return (
     <div
       className={`relative ${color} border border-[rgba(99,119,88,0.45)] p-3 shadow-[0_14px_30px_rgba(7,22,40,0.18)] ${rot} aspect-square flex flex-col overflow-hidden`}
@@ -151,8 +167,8 @@ function PostItDevuelto({ pedido: p, indice: i }) {
         </div>
       </div>
 
-      <div className="mt-1.5 truncate font-['Patrick_Hand'] text-sm text-[#071628]">{p.alumno}</div>
-      <div className="truncate font-['Patrick_Hand'] text-[11px] text-[#071628]">DNI {p.dni}</div>
+      <div className="mt-1.5 break-words font-['Patrick_Hand'] text-[13px] leading-tight text-[#071628]">{p.alumno}</div>
+      <div className="font-['Patrick_Hand'] text-[11px] text-[#071628]">DNI {p.dni}</div>
 
       <ul className="mt-1.5 flex-1 space-y-0.5 overflow-hidden text-[11px] leading-snug text-[#071628]">
         {(p.items || []).slice(0, 4).map((it, ix) => (
@@ -160,6 +176,12 @@ function PostItDevuelto({ pedido: p, indice: i }) {
         ))}
         {(p.items || []).length > 4 && <li className="text-[#071628]">+ {(p.items || []).length - 4} más</li>}
       </ul>
+
+      {notas && (
+        <div className="mt-1 break-words text-[10px] leading-snug text-[#071628]">
+          <span className="italic">Otros materiales / Insumos:</span> {notas}
+        </div>
+      )}
 
       <div className="mt-1 text-right font-['Caveat'] text-base leading-none -rotate-2 text-[#071628]">~ devuelto ~</div>
     </div>
@@ -198,23 +220,31 @@ function TarjetaPresentacion({ pedidos = [] }) {
           <div className="min-w-0 border-l border-dashed border-[rgba(99,119,88,0.35)] pl-3">
             {pedidos.length ? (
               <div className="space-y-2">
-                {pedidos.map((p) => (
-                  <div key={p.id} className="min-w-0">
-                    <div className="flex items-baseline justify-between gap-1">
-                      <span className="font-['Patrick_Hand'] text-[14px] leading-none text-[#071628]">
-                        Pedido {p.id}
-                      </span>
-                      <span className="shrink-0 text-[9px] uppercase tracking-[2px] text-[#071628]">
-                        {horaDe(p)}
-                      </span>
+                {pedidos.map((p) => {
+                  const notas = notasLimpiasDevuelto(p)
+                  return (
+                    <div key={p.id} className="min-w-0">
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="font-['Patrick_Hand'] text-[14px] leading-none text-[#071628]">
+                          Pedido {p.id}
+                        </span>
+                        <span className="shrink-0 text-[9px] uppercase tracking-[2px] text-[#071628]">
+                          {horaDe(p)}
+                        </span>
+                      </div>
+                      <div className="break-words font-['Patrick_Hand'] text-[12px] leading-tight text-[#071628]">
+                        <span className="text-[#071628]">{String(p.alumno || '').split(',')[0]}</span>
+                        <span className="text-[#071628]"> — </span>
+                        <span className="text-[11px] text-[#071628]">{resumenItems(p, 4)}</span>
+                      </div>
+                      {notas && (
+                        <div className="mt-1 break-words text-[10px] leading-snug text-[#071628]">
+                          <span className="italic">Otros materiales / Insumos:</span> {notas}
+                        </div>
+                      )}
                     </div>
-                    <div className="break-words font-['Patrick_Hand'] text-[12px] leading-tight text-[#071628]">
-                      <span className="text-[#071628]">{String(p.alumno || '').split(',')[0]}</span>
-                      <span className="text-[#071628]"> — </span>
-                      <span className="text-[11px] text-[#071628]">{resumenItems(p, 4)}</span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="space-y-2">
@@ -272,19 +302,27 @@ function TarjetaHoja({ pedidos = [] }) {
       >
         <div className="font-['Patrick_Hand'] text-[14px] leading-[22px] text-[#071628]">
           {pedidos.length ? (
-            pedidos.map((p) => (
-              <div key={p.id} className="min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-['Caveat'] text-[19px] leading-[22px]">Pedido {p.id}</span>
-                  <span className="shrink-0 text-[10px] leading-[22px] tracking-[1px] text-[#071628]">
-                    {horaDe(p)}
-                  </span>
+            pedidos.map((p) => {
+              const notas = notasLimpiasDevuelto(p)
+              return (
+                <div key={p.id} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-['Caveat'] text-[19px] leading-[22px]">Pedido {p.id}</span>
+                    <span className="shrink-0 text-[10px] leading-[22px] tracking-[1px] text-[#071628]">
+                      {horaDe(p)}
+                    </span>
+                  </div>
+                  <div className="break-words text-[13px] leading-[22px] text-[#071628]">
+                    {String(p.alumno || '').split(',')[0]} — {resumenItems(p, 4)}
+                  </div>
+                  {notas && (
+                    <div className="break-words text-[11px] leading-[18px] text-[#071628]">
+                      <span className="italic">Otros materiales / Insumos:</span> {notas}
+                    </div>
+                  )}
                 </div>
-                <div className="break-words text-[13px] leading-[22px] text-[#071628]">
-                  {String(p.alumno || '').split(',')[0]} — {resumenItems(p, 4)}
-                </div>
-              </div>
-            ))
+              )
+            })
           ) : (
             <>
               <div className="flex items-baseline gap-2">
@@ -321,7 +359,7 @@ export default function CarpetaDevueltos({ lista = [] }) {
   const { fichas, postits, ranura, suelta, total, ocultos } = repartirDevueltos(lista)
 
   return (
-    <div className="relative bg-[#BBB88C] rounded-[10px] shadow-[0_28px_64px_rgba(7,22,40,0.28)] border border-[#637758] overflow-hidden">
+    <div className="relative bg-[rgba(115,107,103,0.5)] rounded-[10px] shadow-[0_28px_64px_rgba(7,22,40,0.28)] border border-[#637758] overflow-hidden">
       {/* Lomo / etiqueta lateral */}
       <div className="absolute -right-3 top-14 w-11 h-56 bg-[#DBD3B7] rounded-r-[8px] border border-[#637758] border-l-0 shadow-[14px_20px_36px_rgba(7,22,40,0.22)] hidden lg:flex items-center justify-center">
         <span className="font-['Caveat'] uppercase tracking-[12px] text-[20px] rotate-180 [writing-mode:vertical-rl] text-[#071628]">
@@ -373,7 +411,7 @@ export default function CarpetaDevueltos({ lista = [] }) {
 
             {/* Ranura: una tarjeta de presentación asoma de la abertura */}
             <div className="relative mx-auto w-full max-w-[340px]">
-              <div className="h-5 bg-[#BBB88C] rounded-t-md border border-[#637758] border-b-0" />
+              <div className="h-5 bg-[rgba(115,107,103,0.5)] rounded-t-md border border-[#637758] border-b-0" />
               <div className="relative bg-[#DBD3B7] border border-[#637758] border-t-0 p-3 shadow-[0_16px_38px_rgba(7,22,40,0.18)] -mt-1">
                 <div className="absolute left-1/2 -translate-x-1/2 -top-[6px] h-[3px] w-24 rounded-full bg-[rgba(99,119,88,0.3)]" />
                 <div className="pt-2">

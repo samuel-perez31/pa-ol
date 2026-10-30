@@ -15,11 +15,7 @@ const fmtFecha = (f) => {
 }
 
 const COLORES = [
-  '#DBD3B7',
-  '#D6D3B4',
-  '#E5DCB7',
-  '#CFCDAB',
-  '#C7C7A3',
+  '#EFEAA7',
 ]
 
 const PATRONES = [

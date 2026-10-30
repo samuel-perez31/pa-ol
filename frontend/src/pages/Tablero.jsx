@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { API, WS_URL } from '../api.js'
 import TarjetaPedido from '../components/TarjetaPedido.jsx'
+import LibroPedidos from '../components/LibroPedidos.jsx'
 import CarpetaDevueltos from '../components/CarpetaDevueltos.jsx'
 import PostItPedido from '../components/PostItPedido.jsx'
 
@@ -757,13 +758,7 @@ export default function Tablero() {
       <div className="pb-10">
         {vista === 'pedidos' && (
         <section id="sec-pedidos" className="scroll-mt-24">
-          <h2 className="text-xl font-bold text-tinta">📦 Pedidos</h2>
-          <p className="text-sm text-tinta mt-1">Pedidos solicitados esperando confirmación ({pedidosAConfirmar.length})</p>
-          <div className="mt-6 space-y-5">
-            {pedidosAConfirmar.length ?
-              pedidosAConfirmar.map(p => <TarjetaPedido key={p.id} pedido={p} onAccion={accion} modoPedidos />) :
-              <p className="text-center text-base text-tinta py-8">No hay pedidos por confirmar</p>}
-          </div>
+          <LibroPedidos pedidos={pedidosAConfirmar} onAccion={accion} />
         </section>
         )}
 

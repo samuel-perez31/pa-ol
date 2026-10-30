@@ -33,6 +33,8 @@
 | Rutas y barra superior | `frontend/src/App.jsx` | `/solicitar` y `/tablero` |
 | Página de solicitud | `frontend/src/pages/Solicitar.jsx` | celular / alumno |
 | Página del tablero | `frontend/src/pages/Tablero.jsx` | pantalla grande |
+| Libro de Pedidos | `frontend/src/components/LibroPedidos.jsx` | vista Pedidos: libro abierto con dos ganchos |
+| Entradas manuscritas | `frontend/src/components/PedidoManuscrito.jsx` | pedidos escritos a mano dentro del libro |
 | Configuración de colores y `<body>` | `frontend/index.html` | Tailwind por CDN |
 | Backend + API + estáticos | `backend/app/main.py` | sirve `frontend/dist` |
 | Conexión a MySQL | `backend/app/database.py` + `backend/.env` | credenciales en `.env` |
@@ -55,7 +57,7 @@ Archivo: **`frontend/index.html`**, dentro de `tailwind.config` (líneas 11–69
 | Línea | Nombre en el código | Hex | Para qué se usa |
 |---|---|---|---|
 | 17 | `tinta` | `#071628` | azul prusiano: **todas las letras** |
-| 19 | `papel` | `#E5DCB7` | blanco holandés: **fondo de página** y hojas |
+| 19 | `papel` | `#F3F0E8` | blanco cálido: **fondo de página**, hojas y texto sobre verde |
 | 20 | `papel2` | `#DBD3B7` | Quill: tarjetas, paneles, inputs |
 | 22 | `carpeta` | `#BBB88C` | Baby Bok Choy: **carpetas** |
 | 23 | `verde` | `#637758` | Wild Axolotl: botones, bordes |
@@ -232,17 +234,17 @@ El estado de la vista está en la línea 134 (`vista`). El render general empiez
 
 | Vista | Líneas | Título que se muestra | Componente que usa |
 |---|---|---|---|
-| Inicio | 685–722 | `📅 Hoy · <fecha>` (698) y `📚 Historial de hoy` (713–714) | contadores + carpetas del historial |
-| Pedidos | 758–768 | `📦 Pedidos` (760) | `TarjetaPedido` en modo pedidos |
-| Pendientes | 770–788 | `⏳ Pendientes` (772) | `PostItPedido` |
-| En taller | 790–798 | `🔨 En taller / Prestados` (792) | `TarjetaPedido` |
-| Devueltos hoy | 800–807 | `✅ Devueltos hoy` (802) | `CarpetaDevueltos` (804) |
-| Historial | 809–944 | `📚 Historial General` (811) | carpetas por alumno |
+| Inicio | 686–723 | `📅 Hoy · <fecha>` (699) y `📚 Historial de hoy` (714–715) | contadores + carpetas del historial |
+| Pedidos | 760–763 | `Pedidos` (`LibroPedidos.jsx` 97) | `LibroPedidos` + `PedidoManuscrito` |
+| Pendientes | 765–783 | `⏳ Pendientes` (767) | `PostItPedido` |
+| En taller | 785–793 | `🔨 En taller / Prestados` (787) | `TarjetaPedido` |
+| Devueltos hoy | 795–802 | `✅ Devueltos hoy` (797) | `CarpetaDevueltos` (799) |
+| Historial | 804–939 | `📚 Historial General` (806) | carpetas por alumno |
 
 Subtítulos y contadores:
 
 - "Inicio": contadores en 688–694, tarjetas en 701–708.
-- "Pedidos": subtítulo en 761, listado en 763–765.
+- "Pedidos": título y contador dentro del libro (`LibroPedidos.jsx` 97–103); entradas manuscritas (`PedidoManuscrito.jsx`) repartidas entre las dos páginas.
 - "Pendientes": subtítulo en 773, grilla en 774–786.
 - "En taller": subtítulo en 793, listado en 794–796.
 - "Devueltos hoy": sin subtítulo, solo la carpeta.
@@ -284,7 +286,7 @@ Subtítulos y contadores:
 
 ---
 
-## 6. Tarjetas de pedido (Pedidos / En taller)
+## 6. Tarjetas de pedido (En taller)
 
 Archivo: **`frontend/src/components/TarjetaPedido.jsx`**
 
@@ -304,6 +306,29 @@ Archivo: **`frontend/src/components/TarjetaPedido.jsx`**
 | Botón "✅ Entregado" (Pendientes) | 127–131 |
 | Botón "↩ Marcar como Devuelto (Completo)" | 133–137 |
 | Botón "📦 Cargar Devolución" | 138–144 |
+
+> La vista Pedidos ya no usa esta tarjeta: el libro muestra entradas manuscritas
+> (`PedidoManuscrito.jsx`). Las tarjetas quedan para "En taller".
+
+## 6.1 Entradas manuscritas del libro de Pedidos
+
+Archivo: **`frontend/src/components/PedidoManuscrito.jsx`**
+
+| Qué | Línea |
+|---|---|
+| Fecha `DD/MM/AAAA` | 4–10 |
+| Inclinaciones de cada entrada | 14 |
+| "Pedido N" (Caveat) | 25–30 |
+| Alumno | 33–35 |
+| DNI + curso | 36–38 |
+| Lista de materiales | 40–49 |
+| Nota (sin `[EN_TALLER]`) | 51–55 |
+| Botón "✓ confirmar pedido" | 57–77 |
+| Separador ondulado | 79–83 |
+
+> Cada entrada se gira apenas (`ROTACIONES`) para que no quede todo perfectamente alineado.
+> El botón de confirmar es texto manuscrito con un check y una línea ondulada, no un botón
+> rectangular.
 
 ---
 
@@ -355,8 +380,8 @@ Archivo: **`frontend/src/components/CarpetaDevueltos.jsx`** (404 líneas).
 
 | Pieza | Líneas | Qué contiene |
 |---|---|---|
-| `FichaArchivo` | 112–134 | ficha verde sobre la hoja |
-| `PostItDevuelto` | 137–167 | papelito cuadrado con "~ devuelto ~" |
+| `FichaArchivo` | 112–131 | ficha amarilla sobre la hoja, nombre completo en línea propia |
+| `PostItDevuelto` | 134–165 | papelito cuadrado con "~ devuelto ~", nombre completo sin truncar |
 | `FONDO_TARJETA` | 170–173 | degradé de la tarjeta suelta |
 | `TarjetaPresentacion` | 175–244 | tarjeta apaisada con dos columnas |
 | `TarjetaHoja` | 248–314 | hoja con encabezado, regla roja y renglones |
@@ -423,7 +448,7 @@ Otros textos:
 | "Menú" | idem | 1008 |
 | "📅 Hoy · …" | idem | 698 |
 | "📚 Historial de hoy" | idem | 713–714 |
-| "📦 Pedidos" | idem | 760 |
+| "Pedidos" | `LibroPedidos.jsx` | 77 |
 | "⏳ Pendientes" | idem | 772 |
 | "🔨 En taller / Prestados" | idem | 792 |
 | "✅ Devueltos hoy" | idem | 802 |
@@ -501,12 +526,15 @@ Reglas de qué pedido aparece en cada lado (`Tablero.jsx`):
 
 | Quiero cambiar… | Dónde |
 |---|---|
-| Fondo de toda la página | `frontend/index.html` línea 72 (`bg-papel`) y `Tablero.jsx` línea 977 |
-| Color de todas las letras | `frontend/index.html` línea 17 (`tinta`) + objetos `C` de la sección 2.2 |
+| Fondo de toda la página | `frontend/index.html` línea 79 (`bg-papel`) y `Tablero.jsx` línea 972 |
+| Forma, tapa, páginas y ganchos del libro de Pedidos | `LibroPedidos.jsx` (todo el archivo) |
+| Escritura (tipo, tamaño, giro) de los pedidos del libro | `PedidoManuscrito.jsx` (todo el archivo) |
+| Tipografías manuscritas Caveat / Patrick Hand | `frontend/index.html` líneas 7–13 |
+| Color de todas las letras | `frontend/index.html` línea 24 (`tinta`) + objetos `C` de la sección 2.2 |
 | Fondo de las tarjetas | `TarjetaPedido.jsx` línea 83; `FormularioAlumno.jsx` 43; `SelectorHerramientas.jsx` 95 y 123 |
-| Verde de las carpetas | `CarpetaDevueltos.jsx` 324 y 336; `index.html` línea 22 (`carpeta`) |
-| Rojos de bordes | `CarpetaDevueltos.jsx` 182, 184, 252; `App.jsx` 35; `Tablero.jsx` 690–691 |
-| Título de una zona del tablero | `Tablero.jsx` 698, 760, 772, 792, 802 u 811 |
+| Verde de las carpetas | `CarpetaDevueltos.jsx` 324 y 336; `index.html` línea 29 (`carpeta`) |
+| Rojos de bordes | `CarpetaDevueltos.jsx` 182, 184, 252; `App.jsx` 35; `Tablero.jsx` 691–692 y 739 |
+| Título de una zona del tablero | `Tablero.jsx` 699, 767, 787, 797 u 806; el del libro en `LibroPedidos.jsx` 97 |
 | Textos de las tarjetas de la carpeta | `CarpetaDevueltos.jsx` 190–239 y 256–310 |
 | Colores de los post-its | `CarpetaDevueltos.jsx` 6; `PostItPedido.jsx` 17–23 |
 | Cuántos pedidos entran en la carpeta | `CarpetaDevueltos.jsx` 28–30 |
