@@ -1,9 +1,9 @@
 import React from 'react'
 
 const C = {
-  freshmint: '#2A5942',
-  opulent: '#0E3225',
-  neutral300: '#A3B8A3',
+  freshmint: '#3E583F',
+  opulent: '#071628',
+  neutral300: '#637758',
 }
 
 const CURSOS = ['1°', '2°', '3°', '4°', '5°', '6°', '7°']
@@ -37,10 +37,10 @@ export default function FormularioAlumno({ datos, setDatos }) {
   }
 
   const inputClass = `w-full border border-[${C.neutral300}] rounded-lg p-3 mb-3 focus:outline-none focus:ring-2 focus:ring-[${C.freshmint}]`
-  const labelClass = `block text-sm font-semibold text-[${C.freshmint}] mb-2`
+  const labelClass = `block text-sm font-semibold text-[${C.opulent}] mb-2`
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow mb-4">
+    <div className="bg-papel2 rounded-xl p-4 shadow mb-4">
       <label className={labelClass}>DNI</label>
       <input inputMode="numeric" value={formatearDni(datos.dni)} onChange={onDni} className={inputClass} placeholder="Ej: 45.123.456" />
       <label className={labelClass}>Nombre y Apellido</label>

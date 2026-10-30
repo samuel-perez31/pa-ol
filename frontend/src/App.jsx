@@ -32,7 +32,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <nav className="bg-[#0E3225] text-white px-4 pt-[5px] pb-[9px] flex gap-4 text-sm">
+      <nav className="bg-papel2 text-tinta border-b-2 border-rojo2 px-4 pt-[5px] pb-[9px] flex gap-4 text-sm">
         <Link to="/solicitar" className="hover:underline">📱 Solicitar</Link>
         <Link to="/tablero" className="hover:underline">📋 Tablero</Link>
       </nav>

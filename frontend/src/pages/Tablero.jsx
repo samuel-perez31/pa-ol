@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { API, WS_URL } from '../api.js'
 import TarjetaPedido from '../components/TarjetaPedido.jsx'
+import CarpetaDevueltos from '../components/CarpetaDevueltos.jsx'
+import PostItPedido from '../components/PostItPedido.jsx'
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 const DIAS_SEMANA = ['LU', 'MA', 'MI', 'JU', 'VI', 'SÁ', 'DO']
@@ -29,21 +31,21 @@ const idSesion = () => {
 }
 
 const C = {
-  milpa: '#679460',
-  freshmint: '#2A5942',
-  opulent: '#0E3225',
-  glendale: '#9FBF8B',
-  tandoori: '#D05865',
-  rare: '#D70A34',
-  neutral50: '#F5F7F5',
-  neutral100: '#E8EDE8',
-  neutral200: '#D1DAD1',
-  neutral300: '#A3B8A3',
-  neutral400: '#7A947A',
-  neutral500: '#5A755A',
-  neutral600: '#455A45',
-  neutral700: '#364536',
-  neutral900: '#0E3225',
+  milpa: '#637758',
+  freshmint: '#3E583F',
+  opulent: '#071628',
+  glendale: '#BBB88C',
+  tandoori: '#AC303C',
+  rare: '#840D27',
+  neutral50: '#E5DCB7',
+  neutral100: '#DBD3B7',
+  neutral200: '#BBB88C',
+  neutral300: '#637758',
+  neutral400: '#071628',
+  neutral500: '#071628',
+  neutral600: '#071628',
+  neutral700: '#071628',
+  neutral900: '#071628',
 }
 
 export default function Tablero() {
@@ -412,7 +414,7 @@ export default function Tablero() {
     const itemsAMostrar = devueltosHoy  // Solo los que tienen fecha de devolución HOY
     if (!itemsAMostrar.length) {
       return (
-        <p className="text-neutral400 text-center py-8">No hay devoluciones para hoy</p>
+        <p className="text-tinta/60 text-center py-8">No hay devoluciones para hoy</p>
       )
     }
     // Ordenar cronológicamente (más reciente primero)
@@ -503,7 +505,7 @@ export default function Tablero() {
 
     if (!ordenados.length) {
       return (
-        <p className="text-neutral400 text-center py-8">
+        <p className="text-tinta/60 text-center py-8">
           {opciones.vacio || (hayFiltroFecha
             ? `No hay devoluciones entre ${fmtCorta(fechaDesde || fechaHasta)}${fechaDesde && fechaHasta && fechaDesde !== fechaHasta ? ` y ${fmtCorta(fechaHasta)}` : ''}`
             : busq ? `No se encontraron resultados para "${busquedaHistorial}"` : 'No hay devoluciones en el historial')}
@@ -532,10 +534,10 @@ export default function Tablero() {
               <div
                 className="absolute inset-0 rounded-md"
                 style={{
-                  background: 'linear-gradient(180deg,#EBDDB6 0%,#E0CFA0 100%)',
+                  background: 'linear-gradient(180deg,#DBD3B7 0%,#BBB88C 100%)',
                   boxShadow: levantada
-                    ? '0 22px 34px rgba(0,0,0,.22), inset 0 0 0 1px #C3AB72'
-                    : '0 8px 16px rgba(0,0,0,.12), inset 0 0 0 1px #C3AB72',
+                    ? '0 22px 34px rgba(7,22,40,.22), inset 0 0 0 1px #637758'
+                    : '0 8px 16px rgba(7,22,40,.12), inset 0 0 0 1px #637758',
                 }}
               />
 
@@ -544,11 +546,11 @@ export default function Tablero() {
                 className="absolute top-0 left-5 h-[30px] pl-3 pr-5 flex items-center gap-2 z-10 whitespace-nowrap"
                 style={{
                   background: abierta
-                    ? 'linear-gradient(180deg,#D96470 0%,#CE4F5C 100%)'
-                    : 'linear-gradient(180deg,#F7ECCF 0%,#EDDFB6 100%)',
+                    ? 'linear-gradient(180deg,#C85956 0%,#AC303C 100%)'
+                    : 'linear-gradient(180deg,#DBD3B7 0%,#BBB88C 100%)',
                   clipPath: 'polygon(0 0, calc(100% - 15px) 0, 100% 100%, 0 100%)',
-                  color: abierta ? '#fff' : '#3B2F16',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.45)',
+                  color: abierta ? '#E5DCB7' : '#071628',
+                  boxShadow: 'inset 0 1px 0 rgba(229,220,183,.5)',
                 }}
               >
                 <span>👤</span>
@@ -557,8 +559,8 @@ export default function Tablero() {
                 <span
                   className="ml-1 px-1.5 rounded-full text-[10px] font-bold"
                   style={{
-                    background: abierta ? 'rgba(255,255,255,.28)' : '#D6C089',
-                    color: abierta ? '#fff' : '#4A3C1B',
+                    background: abierta ? 'rgba(229,220,183,.3)' : '#BBB88C',
+                    color: abierta ? '#E5DCB7' : '#071628',
                   }}
                 >
                   {g.devoluciones.length}
@@ -571,19 +573,19 @@ export default function Tablero() {
                 style={{ gridTemplateRows: abierta ? '1fr' : '0fr', marginTop: '72px' }}
               >
                 <div className="overflow-hidden">
-                  <div className="m-3 bg-white rounded-sm p-4 shadow-[0_1px_3px_rgba(0,0,0,.12)]">
+                  <div className="m-3 bg-papel rounded-sm p-4 shadow-[0_1px_3px_rgba(7,22,40,.12)]">
                     <div className="space-y-4">
                       {g.devoluciones.map(p => (
-                        <div key={p.id} className="border-l-4 border-tandoori pl-3">
-                          <div className="text-sm font-bold text-black">
+                        <div key={p.id} className="border-l-4 border-rojo2 pl-3">
+                          <div className="text-sm font-bold text-tinta">
                             📅 {formatearFechaISO(p.fecha_devolucion || p.fecha_solicitud)}
                             {' · 🕒 '}{p.fecha_hora_devolucion || p.fecha_hora_solicitud}
                             {p.curso ? ` · ${p.curso}` : ''}
                           </div>
-                          <ul className="text-sm text-neutral600 mt-1 space-y-1">
+                          <ul className="text-sm text-tinta/85 mt-1 space-y-1">
                             {(p.items || []).map((item, idx) => (
                               <li key={idx} className="flex items-center gap-2">
-                                <span className={item.devuelto ? 'line-through text-neutral400' : ''}>
+                                <span className={item.devuelto ? 'line-through text-tinta/60' : ''}>
                                   • {item.cantidad}× {item.nombre}
                                 </span>
                               </li>
@@ -591,7 +593,7 @@ export default function Tablero() {
                           </ul>
                           {p.notas && (() => {
                             const notasLimpias = String(p.notas).replace(/\[EN_TALLER\]/g, '').trim()
-                            return notasLimpias ? <p className="text-xs text-neutral500 italic mt-1">{notasLimpias}</p> : null
+                            return notasLimpias ? <p className="text-xs text-tinta/75 italic mt-1">{notasLimpias}</p> : null
                           })()}
                         </div>
                       ))}
@@ -604,25 +606,25 @@ export default function Tablero() {
               <div
                 className="absolute left-0 right-0 top-[26px] h-[46px] z-20 transition-transform duration-300 ease-out"
                 style={{
-                  background: 'linear-gradient(180deg,#F9F2E0 0%,#F0E2C0 100%)',
+                  background: 'linear-gradient(180deg,#E5DCB7 0%,#DBD3B7 100%)',
                   clipPath: 'polygon(0 0, calc(100% - 44px) 0, 100% 40px, 100% 100%, 0 100%)',
-                  boxShadow: abierta ? '0 10px 16px rgba(0,0,0,.14)' : 'none',
+                  boxShadow: abierta ? '0 10px 16px rgba(7,22,40,.14)' : 'none',
                   transform: abierta ? 'translateY(-5px)' : 'none',
                 }}
               />
 
               {/* ---- Texto de la tapa ---- */}
               <div className="absolute left-0 right-0 top-[26px] h-[46px] z-30 flex items-center gap-3 px-5 pr-16 pointer-events-none">
-                <span className="text-sm text-[#3B2F16]">
+                <span className="text-sm text-[#071628]">
                   📁 {g.devoluciones.length} devolución{g.devoluciones.length > 1 ? 'es' : ''}
                   {ultima && (
-                    <span className="text-[#7A6839]">
+                    <span className="text-[#071628]">
                       {' '}· última: {formatearFechaISO(ultima.fecha_devolucion || ultima.fecha_solicitud)}
                       {ultima.fecha_hora_devolucion || ultima.fecha_hora_solicitud ? ` ${ultima.fecha_hora_devolucion || ultima.fecha_hora_solicitud}` : ''}
                     </span>
                   )}
                 </span>
-                <span className="ml-auto text-xs text-[#7A6839]">{abierta ? '▲ cerrar' : '▼ abrir'}</span>
+                <span className="ml-auto text-xs text-[#071628]">{abierta ? '▲ cerrar' : '▼ abrir'}</span>
               </div>
             </div>
           )
@@ -640,36 +642,36 @@ export default function Tablero() {
       return ta - tb
     })
     return (
-      <div className="fixed inset-0 bg-neutral900/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-xl max-w-4xl w-full max-h-screen overflow-y-auto">
-          <div className="border-b border-neutral300 p-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-opulent">📂 {cartera.nombre}</h2>
-            <button onClick={() => setPortfolioAbierto(false)} className="text-neutral500 hover:text-tandoori transition">✕</button>
+      <div className="fixed inset-0 bg-verdeoscuro/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="bg-papel rounded-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+          <div className="border-b border-verde/40 p-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-tinta">📂 {cartera.nombre}</h2>
+            <button onClick={() => setPortfolioAbierto(false)} className="text-tinta/75 hover:text-tinta transition">✕</button>
           </div>
           <div className="p-4 space-y-4">
-            <p className="text-neutral600 text-sm">📅 {formatearFechaISO(cartera.fecha)} · N° {cartera.numeracion}</p>
+            <p className="text-tinta/85 text-sm">📅 {formatearFechaISO(cartera.fecha)} · N° {cartera.numeracion}</p>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div><div className="text-neutral500">Entregas</div><div className="font-bold text-opulent">{pedidosDia.filter(p => p.estado === 'PRESTADO' || p.estado === 'PENDIENTE').length}</div></div>
-              <div><div className="text-neutral500">Devoluciones</div><div className="font-bold text-milpa">{pedidosDia.filter(p => p.estado === 'DEVUELTO').length}</div></div>
+              <div><div className="text-tinta/75">Entregas</div><div className="font-bold text-tinta">{pedidosDia.filter(p => p.estado === 'PRESTADO' || p.estado === 'PENDIENTE').length}</div></div>
+              <div><div className="text-tinta/75">Devoluciones</div><div className="font-bold text-tinta">{pedidosDia.filter(p => p.estado === 'DEVUELTO').length}</div></div>
             </div>
-            <h3 className="text-opulent font-medium mb-2">Pedidos de la jornada</h3>
+            <h3 className="text-tinta font-medium mb-2">Pedidos de la jornada</h3>
             {pedidosOrdenados.length ? (
               pedidosOrdenados.map(p => (
-                <div key={p.id} className="bg-neutral100 rounded border border-neutral300 p-3 mb-2">
-                  <div className="font-medium text-opulent">{p.alumno}</div>
-                  <div className="text-xs text-neutral500">{formatearFechaISO(p.fecha_solicitud)}</div>
-                  <p className="text-xs text-neutral600 mt-1">
+                <div key={p.id} className="bg-papel2 rounded border border-verde/40 p-3 mb-2">
+                  <div className="font-medium text-tinta">{p.alumno}</div>
+                  <div className="text-xs text-tinta/75">{formatearFechaISO(p.fecha_solicitud)}</div>
+                  <p className="text-xs text-tinta/85 mt-1">
                     {p.items.map((item, i) => `${item.cantidad}× ${item.nombre}${i < p.items.length - 1 && ', ' || ''}`).join(', ')}
                   </p>
-                  {p.notas && <p className="text-xs text-neutral500 italic mt-1">{p.notas}</p>}
+                  {p.notas && <p className="text-xs text-tinta/75 italic mt-1">{p.notas}</p>}
                 </div>
               ))
             ) : (
-              <p className="text-neutral400 text-center py-4">No hay pedidos registrados para este día</p>
+              <p className="text-tinta/60 text-center py-4">No hay pedidos registrados para este día</p>
             )}
-            <div className="mt-4 pt-4 border-t border-neutral300 flex gap-2">
-              <button onClick={() => setPortfolioSeleccionado(null)} className="flex-1 bg-tandoori text-white py-2 rounded text-sm hover:bg-opulent transition">← Volver</button>
-              <button onClick={() => cambiarVista('historial')} className="flex-1 bg-freshmint text-white py-2 rounded text-sm hover:bg-opulent transition">Historial</button>
+            <div className="mt-4 pt-4 border-t border-verde/40 flex gap-2">
+              <button onClick={() => setPortfolioSeleccionado(null)} className="flex-1 bg-verdeoscuro text-papel py-2 rounded text-sm hover:bg-verde transition">← Volver</button>
+              <button onClick={() => cambiarVista('historial')} className="flex-1 bg-verdeoscuro text-papel py-2 rounded text-sm hover:bg-verde transition">Historial</button>
             </div>
           </div>
         </div>
@@ -684,23 +686,23 @@ export default function Tablero() {
     const d = new Date()
     const diaSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][d.getDay()]
     const contadores = [
-      { label: 'Solicitados hoy', valor: solicitadosHoy.length, borde: 'border-milpa' },
-      { label: 'Devueltos hoy', valor: devueltosHoy.length, borde: 'border-tandoori' },
-      { label: 'A confirmar', valor: pedidosAConfirmar.length, borde: 'border-tandoori' },
-      { label: 'Pendientes', valor: pedidosAPasar.length, borde: 'border-freshmint' },
-      { label: 'En taller', valor: pedidosEnTaller.length, borde: 'border-opulent' },
+      { label: 'Solicitados hoy', valor: solicitadosHoy.length, borde: 'border-verde' },
+      { label: 'Devueltos hoy', valor: devueltosHoy.length, borde: 'border-rojo2' },
+      { label: 'A confirmar', valor: pedidosAConfirmar.length, borde: 'border-rojo2' },
+      { label: 'Pendientes', valor: pedidosAPasar.length, borde: 'border-verdeoscuro' },
+      { label: 'En taller', valor: pedidosEnTaller.length, borde: 'border-verdeoscuro' },
     ]
     return (
       <div className="pb-10 space-y-8">
         <section>
-          <h2 className="text-xl font-bold text-black">📅 Hoy · {formatearFechaISO(isoHoy())}</h2>
-          <p className="text-sm text-black mt-1">{diaSemana} · lo que se hizo hoy en el taller</p>
+          <h2 className="text-xl font-bold text-tinta">📅 Hoy · {formatearFechaISO(isoHoy())}</h2>
+          <p className="text-sm text-tinta mt-1">{diaSemana} · lo que se hizo hoy en el taller</p>
 
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             {contadores.map(c => (
-              <div key={c.label} className={`bg-white rounded-lg border border-neutral300 border-l-4 ${c.borde} px-4 py-3`}>
-                <div className="text-2xl font-bold text-black">{c.valor}</div>
-                <div className="text-xs text-neutral500">{c.label}</div>
+              <div key={c.label} className={`bg-papel2 rounded-lg border border-verde/40 border-l-4 ${c.borde} px-4 py-3`}>
+                <div className="text-2xl font-bold text-tinta">{c.valor}</div>
+                <div className="text-xs text-tinta/75">{c.label}</div>
               </div>
             ))}
           </div>
@@ -708,8 +710,8 @@ export default function Tablero() {
 
         {/* Historial del día: las devoluciones de HOY, agrupadas en carpetas por alumno */}
         <section>
-          <h3 className="text-lg font-bold text-black">
-            📚 Historial de hoy <span className="text-sm font-normal text-neutral500">({devueltosHoy.length} devoluciones)</span>
+          <h3 className="text-lg font-bold text-tinta">
+            📚 Historial de hoy <span className="text-sm font-normal text-tinta/75">({devueltosHoy.length} devoluciones)</span>
           </h3>
           <div className="mt-4">
             {tarjetasHistorial({ lista: devueltosHoy, vacio: 'Hoy no hubo devoluciones' })}
@@ -725,15 +727,15 @@ export default function Tablero() {
       return (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-freshmint border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-neutral500">Cargando pedidos...</p>
+            <div className="w-12 h-12 border-4 border-verdeoscuro border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-tinta/75">Cargando pedidos...</p>
           </div>
         </div>
       )
     }
     if (error) {
       return (
-        <div className="bg-glendale20 border border-tandoori text-tandoori rounded-xl p-4 mb-6 text-center">
+        <div className="bg-carpeta/40 border border-rojo2 text-tinta rounded-xl p-4 mb-6 text-center">
           ⚠️ Error cargando pedidos: {error}
           <button onClick={cargar} className="ml-4 text-sm underline hover:no-underline">Reintentar</button>
         </div>
@@ -755,50 +757,59 @@ export default function Tablero() {
       <div className="pb-10">
         {vista === 'pedidos' && (
         <section id="sec-pedidos" className="scroll-mt-24">
-          <h2 className="text-xl font-bold text-black">📦 Pedidos</h2>
-          <p className="text-sm text-black mt-1">Pedidos solicitados esperando confirmación ({pedidosAConfirmar.length})</p>
+          <h2 className="text-xl font-bold text-tinta">📦 Pedidos</h2>
+          <p className="text-sm text-tinta mt-1">Pedidos solicitados esperando confirmación ({pedidosAConfirmar.length})</p>
           <div className="mt-6 space-y-5">
             {pedidosAConfirmar.length ?
               pedidosAConfirmar.map(p => <TarjetaPedido key={p.id} pedido={p} onAccion={accion} modoPedidos />) :
-              <p className="text-center text-base text-black py-8">No hay pedidos por confirmar</p>}
+              <p className="text-center text-base text-tinta py-8">No hay pedidos por confirmar</p>}
           </div>
         </section>
         )}
 
         {vista === 'pendientes' && (
         <section id="sec-pendientes" className="scroll-mt-24">
-          <h2 className="text-xl font-bold text-black">⏳ Pendientes</h2>
-          <p className="text-sm text-black mt-1">Pedidos confirmados para pasar a buscar ({pedidosAPasar.length})</p>
-          <div className="mt-6 space-y-5">
-            {tarjetasPendientes || <p className="text-center text-base text-black py-8">No hay pedidos pendientes</p>}
+          <h2 className="text-xl font-bold text-tinta">⏳ Pendientes</h2>
+          <p className="text-sm text-tinta mt-1">Pedidos confirmados para pasar a buscar ({pedidosAPasar.length})</p>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+            {pedidosAPasar.length ?
+              pedidosAPasar.map(p => (
+                <PostItPedido
+                  key={p.id}
+                  pedido={p}
+                  onAccion={accion}
+                  accion="pasar-a-taller"
+                  label="✅ Entregado"
+                />
+              )) :
+              <p className="col-span-full text-center text-base text-tinta py-8">No hay pedidos pendientes</p>}
           </div>
         </section>
         )}
 
         {vista === 'prestados' && (
         <section id="sec-prestados" className="scroll-mt-24">
-          <h2 className="text-xl font-bold text-black">🔨 En taller / Prestados</h2>
-          <p className="text-sm text-black mt-1">({pedidosPrestados.length} en taller)</p>
+          <h2 className="text-xl font-bold text-tinta">🔨 En taller / Prestados</h2>
+          <p className="text-sm text-tinta mt-1">({pedidosPrestados.length} en taller)</p>
           <div className="mt-6 space-y-5">
-            {tarjetasPrestados || <p className="text-center text-base text-black py-8">No hay pedidos en taller</p>}
+            {tarjetasPrestados || <p className="text-center text-base text-tinta py-8">No hay pedidos en taller</p>}
           </div>
         </section>
         )}
 
         {vista === 'devueltos' && (
         <section id="sec-devueltos" className="scroll-mt-24">
-          <h2 className="text-xl font-bold text-black">✅ Devueltos hoy</h2>
-          <p className="text-sm text-black mt-1">({devueltosHoy.length} devueltos hoy)</p>
-          <div className="mt-6 space-y-5">
-            {tarjetasDevueltosHoy()}
+          <h2 className="text-xl font-bold text-tinta">✅ Devueltos hoy</h2>
+          <div className="mt-6">
+            <CarpetaDevueltos lista={devueltosHoy} />
           </div>
         </section>
         )}
 
         {vista === 'historial' && (
         <section id="sec-historial" className="scroll-mt-24">
-          <h2 className="text-xl font-bold text-black">📚 Historial General</h2>
-          <p className="text-sm text-black mt-1">
+          <h2 className="text-xl font-bold text-tinta">📚 Historial General</h2>
+          <p className="text-sm text-tinta mt-1">
             {hayFiltroFecha
               ? `Mostrando ${historialFiltrado().length} de ${historialTotal.length} devoluciones${etiquetaFiltroFecha ? ` · ${etiquetaFiltroFecha}` : ''}`
               : `Total de devoluciones: ${historialTotal.length}`}
@@ -807,7 +818,7 @@ export default function Tablero() {
           {/* FILTROS DEL HISTORIAL: búsqueda + calendario */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <div className="relative shrink-0">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tinta/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
               </svg>
               <input
@@ -815,7 +826,7 @@ export default function Tablero() {
                 placeholder="Buscar por nombre, DNI, fecha, herramienta..."
                 value={busquedaHistorial}
                 onChange={(e) => setBusquedaHistorial(e.target.value)}
-                className="h-10 w-[300px] rounded-md border border-[#E5E7EB] bg-white pl-9 pr-3 text-sm placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-freshmint transition"
+                className="h-10 w-[300px] rounded-md border border-[#BBB88C] bg-papel pl-9 pr-3 text-sm placeholder:text-[#637758] focus:outline-none focus:ring-2 focus:ring-verdeoscuro transition"
               />
             </div>
 
@@ -825,8 +836,8 @@ export default function Tablero() {
                 onClick={() => setCalAbierto(v => !v)}
                 className={`h-10 px-3 flex items-center gap-2 rounded-md border text-sm transition ${
                   hayFiltroFecha
-                    ? 'bg-tandoori border-tandoori text-white'
-                    : 'bg-white border-[#E5E7EB] text-black hover:bg-neutral100'
+                    ? 'bg-verdeoscuro border-rojo2 text-papel'
+                    : 'bg-papel border-[#BBB88C] text-tinta hover:bg-papel2'
                 }`}
               >
                 <span>📅</span>
@@ -834,37 +845,37 @@ export default function Tablero() {
                 {hayFiltroFecha && (
                   <span
                     onClick={(e) => { e.stopPropagation(); limpiarFechas() }}
-                    className="cursor-pointer px-1 rounded hover:bg-white/20"
+                    className="cursor-pointer px-1 rounded hover:bg-papel2"
                     title="Quitar filtro de fecha"
                   >✕</span>
                 )}
               </button>
 
               {calAbierto && (
-                <div className="absolute z-50 mt-2 left-0 w-[296px] bg-white border border-[#E5E7EB] rounded-lg shadow-xl p-3 select-none">
+                <div className="absolute z-50 mt-2 left-0 w-[296px] bg-papel border border-[#BBB88C] rounded-lg shadow-xl p-3 select-none">
                   {/* Modo: un día / rango */}
                   <div className="flex gap-1 mb-2 text-xs">
                     <button
                       onClick={() => { setModoFecha('dia'); setRangoEnCurso(null) }}
-                      className={`px-2 py-1 rounded ${modoFecha === 'dia' ? 'bg-opulent text-white' : 'bg-neutral100 text-black hover:bg-neutral200'}`}
+                      className={`px-2 py-1 rounded ${modoFecha === 'dia' ? 'bg-verdeoscuro text-papel' : 'bg-papel2 text-tinta hover:bg-carpeta'}`}
                     >Un día</button>
                     <button
                       onClick={() => setModoFecha('rango')}
-                      className={`px-2 py-1 rounded ${modoFecha === 'rango' ? 'bg-opulent text-white' : 'bg-neutral100 text-black hover:bg-neutral200'}`}
+                      className={`px-2 py-1 rounded ${modoFecha === 'rango' ? 'bg-verdeoscuro text-papel' : 'bg-papel2 text-tinta hover:bg-carpeta'}`}
                     >Rango</button>
                   </div>
 
                   {/* Navegación de mes */}
                   <div className="flex items-center justify-between mb-2">
-                    <button onClick={() => moverMes(-1)} className="w-7 h-7 rounded hover:bg-neutral100 text-black">‹</button>
-                    <span className="text-sm font-semibold text-black">{MESES[calMes]} {calAnio}</span>
-                    <button onClick={() => moverMes(1)} className="w-7 h-7 rounded hover:bg-neutral100 text-black">›</button>
+                    <button onClick={() => moverMes(-1)} className="w-7 h-7 rounded hover:bg-papel2 text-tinta">‹</button>
+                    <span className="text-sm font-semibold text-tinta">{MESES[calMes]} {calAnio}</span>
+                    <button onClick={() => moverMes(1)} className="w-7 h-7 rounded hover:bg-papel2 text-tinta">›</button>
                   </div>
 
                   {/* Encabezados de la semana */}
                   <div className="grid grid-cols-7 gap-1 mb-1">
                     {DIAS_SEMANA.map(d => (
-                      <div key={d} className="text-center text-[10px] text-neutral400 font-semibold">{d}</div>
+                      <div key={d} className="text-center text-[10px] text-tinta/60 font-semibold">{d}</div>
                     ))}
                   </div>
 
@@ -884,15 +895,15 @@ export default function Tablero() {
                           title={cant ? `${cant} devolución${cant > 1 ? 'es' : ''}` : 'Sin devoluciones'}
                           className={`relative h-8 rounded-md text-xs flex items-center justify-center transition ${
                             enRango || enCurso
-                              ? 'bg-tandoori text-white font-bold'
+                              ? 'bg-verdeoscuro text-papel font-bold'
                               : cant
-                                ? 'text-black font-semibold hover:bg-neutral100'
-                                : 'text-neutral400 hover:bg-neutral100'
-                          } ${esHoy && !enRango && !enCurso ? 'ring-1 ring-opulent' : ''}`}
+                                ? 'text-tinta font-semibold hover:bg-papel2'
+                                : 'text-tinta/60 hover:bg-papel2'
+                          } ${esHoy && !enRango && !enCurso ? 'ring-1 ring-verdeoscuro' : ''}`}
                         >
                           {numero}
                           {cant > 0 && (
-                            <span className={`absolute bottom-0.5 w-1 h-1 rounded-full ${enRango || enCurso ? 'bg-white' : 'bg-tandoori'}`} />
+                            <span className={`absolute bottom-0.5 w-1 h-1 rounded-full ${enRango || enCurso ? 'bg-papel' : 'bg-verdeoscuro'}`} />
                           )}
                         </button>
                       )
@@ -900,27 +911,27 @@ export default function Tablero() {
                   </div>
 
                   {/* Rangos rápidos */}
-                  <div className="mt-3 pt-2 border-t border-[#E5E7EB] flex flex-wrap gap-1 text-xs">
-                    <button onClick={() => aplicarRangoRapido('Hoy', isoHoy(), isoHoy())} className="px-2 py-1 rounded bg-neutral100 text-black hover:bg-neutral200">Hoy</button>
-                    <button onClick={() => aplicarRangoRapido('Últimos 7 días', isoHaceDias(6), isoHoy())} className="px-2 py-1 rounded bg-neutral100 text-black hover:bg-neutral200">Últimos 7 días</button>
-                    <button onClick={() => aplicarRangoRapido('Últimos 30 días', isoHaceDias(29), isoHoy())} className="px-2 py-1 rounded bg-neutral100 text-black hover:bg-neutral200">Últimos 30 días</button>
-                    <button onClick={() => aplicarRangoRapido('Este mes', isoInicioMes(), isoHoy())} className="px-2 py-1 rounded bg-neutral100 text-black hover:bg-neutral200">Este mes</button>
-                    <button onClick={() => { limpiarFechas(); setCalAbierto(false) }} className="px-2 py-1 rounded bg-neutral100 text-black hover:bg-neutral200">Todo</button>
+                  <div className="mt-3 pt-2 border-t border-[#BBB88C] flex flex-wrap gap-1 text-xs">
+                    <button onClick={() => aplicarRangoRapido('Hoy', isoHoy(), isoHoy())} className="px-2 py-1 rounded bg-papel2 text-tinta hover:bg-carpeta">Hoy</button>
+                    <button onClick={() => aplicarRangoRapido('Últimos 7 días', isoHaceDias(6), isoHoy())} className="px-2 py-1 rounded bg-papel2 text-tinta hover:bg-carpeta">Últimos 7 días</button>
+                    <button onClick={() => aplicarRangoRapido('Últimos 30 días', isoHaceDias(29), isoHoy())} className="px-2 py-1 rounded bg-papel2 text-tinta hover:bg-carpeta">Últimos 30 días</button>
+                    <button onClick={() => aplicarRangoRapido('Este mes', isoInicioMes(), isoHoy())} className="px-2 py-1 rounded bg-papel2 text-tinta hover:bg-carpeta">Este mes</button>
+                    <button onClick={() => { limpiarFechas(); setCalAbierto(false) }} className="px-2 py-1 rounded bg-papel2 text-tinta hover:bg-carpeta">Todo</button>
                   </div>
 
                   {modoFecha === 'rango' && rangoEnCurso && (
-                    <p className="mt-2 text-[11px] text-neutral500">Elegí la fecha de fin (inicio: {fmtCorta(rangoEnCurso.inicio)})</p>
+                    <p className="mt-2 text-[11px] text-tinta/75">Elegí la fecha de fin (inicio: {fmtCorta(rangoEnCurso.inicio)})</p>
                   )}
                 </div>
               )}
             </div>
 
             {(busquedaHistorial || hayFiltroFecha) && (
-              <button onClick={limpiarTodoHistorial} className="text-xs text-freshmint hover:underline">Limpiar</button>
+              <button onClick={limpiarTodoHistorial} className="text-xs text-tinta hover:underline">Limpiar</button>
             )}
 
             {(busquedaHistorial || hayFiltroFecha) && (
-              <span className="text-xs text-neutral500">
+              <span className="text-xs text-tinta/75">
                 {gruposHistorial.length} carpeta{gruposHistorial.length === 1 ? '' : 's'} · {historialFiltrado().length} de {historialTotal.length} devoluciones
               </span>
             )}
@@ -963,23 +974,23 @@ export default function Tablero() {
   }, [pedidos])
 
   return (
-    <div className="min-h-screen bg-neutral50">
+    <div className="min-h-screen bg-papel">
       {/* ============ CABECERA ============ */}
-      <header className="sticky top-0 z-20 bg-neutral50 border-b border-[#E5E7EB]">
+      <header className="sticky top-0 z-20 bg-papel border-b border-[#BBB88C]">
         <div className="max-w-7xl mx-auto px-8 h-14 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-black flex items-center gap-2">
+          <h1 className="text-xl font-bold text-tinta flex items-center gap-2">
             <span>Sistema Pañol</span>
             <span className="text-sm font-normal">• Panel de control</span>
           </h1>
           <div className="hidden sm:flex items-center gap-6 pr-3">
             <div className="relative">
-              <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tinta/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
               </svg>
               <input type="text" placeholder="Buscar por alumno, DNI o herramienta..."
-                className="pl-14 pr-4 h-10 w-[230px] rounded-md border border-[#E5E7EB] bg-white text-sm placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-freshmint transition" />
+                className="pl-14 pr-4 h-10 w-[230px] rounded-md border border-[#BBB88C] bg-papel text-sm placeholder:text-[#637758] focus:outline-none focus:ring-2 focus:ring-verdeoscuro transition" />
             </div>
-            <button title="Filtrar" className="text-neutral500 hover:text-opulent transition">
+            <button title="Filtrar" className="text-tinta/75 hover:text-tinta transition">
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
               </svg>
@@ -994,18 +1005,18 @@ export default function Tablero() {
           {/* ============ BARRA LATERAL — MENÚ (según la captura) ============ */}
           <aside className="lg:w-64 shrink-0 sticky top-14 z-10">
             <div className="pt-[81px] pb-8">
-              <div className="text-center text-sm font-semibold text-black">Menú</div>
+              <div className="text-center text-sm font-semibold text-tinta">Menú</div>
               <nav className="mt-2">
                 {menuItems.map((item, i) => (
-                  <div key={item.id} className={i > 0 ? 'border-t border-[#E5E7EB]' : ''}>
+                  <div key={item.id} className={i > 0 ? 'border-t border-[#BBB88C]' : ''}>
                     <button
                       onClick={() => irA(item.id)}
-                      className={`w-full h-10 my-0.5 flex items-center gap-2 pl-5 pr-4 rounded-[3px] text-left transition-colors ${vista === item.id ? 'bg-tandoori text-white' : 'text-black hover:bg-white/70'}`}
+                      className={`w-full h-10 my-0.5 flex items-center gap-2 pl-5 pr-4 rounded-[3px] text-left transition-colors ${vista === item.id ? 'bg-verdeoscuro text-papel' : 'text-tinta hover:bg-papel2'}`}
                     >
                       <span className="w-4 text-center text-base leading-none">{item.icon}</span>
                       <span className="text-base flex-1">{item.label}</span>
                       {vista === item.id ? (
-                        <span className="w-6 h-6 rounded-full bg-white shrink-0" />
+                        <span className="w-6 h-6 rounded-full bg-papel shrink-0" />
                       ) : item.num != null ? (
                         <span className="w-6 text-center text-xs shrink-0">{item.num}</span>
                       ) : (

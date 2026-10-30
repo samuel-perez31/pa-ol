@@ -1,6 +1,6 @@
 import React from 'react'
 
-const C = { neutral300: '#A3B8A3', freshmint: '#2A5942' }
+const C = { neutral300: '#637758', freshmint: '#3E583F' }
 
 export default function BarraFiltros({ q, setQ }) {
   return (

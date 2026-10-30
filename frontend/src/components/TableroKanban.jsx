@@ -2,13 +2,13 @@ import React from 'react'
 import TarjetaPedido from './TarjetaPedido.jsx'
 
 const C = {
-  milpa: '#679460',
-  freshmint: '#2A5942',
-  opulent: '#0E3225',
-  glendale: '#9FBF8B',
-  tandoori: '#D05865',
-  rare: '#D70A34',
-  neutral400: '#7A947A',
+  milpa: '#637758',
+  freshmint: '#3E583F',
+  opulent: '#071628',
+  glendale: '#BBB88C',
+  tandoori: '#AC303C',
+  rare: '#840D27',
+  neutral400: 'rgba(7,22,40,0.64)',
 }
 
 export default function TableroKanban({ pedidos, onAccion, fechaSeleccionada }) {
@@ -23,8 +23,8 @@ export default function TableroKanban({ pedidos, onAccion, fechaSeleccionada }) 
   }
 
   const Columna = ({ titulo, color, bgColor, borderColor, items }) => (
-    <section className="rounded-xl overflow-hidden shadow bg-white">
-      <div className={`px-4 py-3 font-bold text-white ${bgColor}`}>
+    <section className="rounded-xl overflow-hidden shadow bg-papel2">
+      <div className={`px-4 py-3 font-bold text-papel ${bgColor}`}>
         {titulo} ({items.length})
       </div>
       <div className={`p-4 border-t-2 ${borderColor}`}>
@@ -43,7 +43,7 @@ export default function TableroKanban({ pedidos, onAccion, fechaSeleccionada }) 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Columna 
         titulo="⏳ Pendientes de Entrega" 
-        bgColor={`bg-[${C.tandoori}]`} 
+        bgColor={`bg-[${C.milpa}]`} 
         borderColor={`border-[${C.tandoori}]`} 
         items={pendientes} 
       />
