@@ -29,10 +29,15 @@
 
 | Qué | Archivo | Notas |
 |---|---|---|
-| Punto de entrada | `frontend/src/main.jsx` | monta `<App />` |
-| Rutas y barra superior | `frontend/src/App.jsx` | `/solicitar` y `/tablero` |
-| Página de solicitud | `frontend/src/pages/Solicitar.jsx` | celular / alumno |
-| Página del tablero | `frontend/src/pages/Tablero.jsx` | pantalla grande |
+| Punto de entrada | `frontend/src/main.jsx` | monta `<AuthProvider>` + `<App />` |
+| Sesión y roles | `frontend/src/auth.jsx` | login, logout y usuario actual |
+| Token y fetch autenticado | `frontend/src/api.js` | `apiFetch`, `wsTableroUrl`, `wsNotificacionesUrl` |
+| Rutas y barra superior | `frontend/src/App.jsx` | `/solicitar`, `/tablero` y `/usuarios` |
+| Login | `frontend/src/pages/Login.jsx` | usuario y contraseña |
+| Administración de cuentas | `frontend/src/pages/Usuarios.jsx` | solo pañolera |
+| Página de solicitud | `frontend/src/pages/Solicitar.jsx` | celular / profesor |
+| Datos del profesor | `frontend/src/components/FormularioProfesor.jsx` | nombre de la cuenta + curso/división |
+| Página del tablero | `frontend/src/pages/Tablero.jsx` | pantalla grande / pañolera |
 | Libro de Pedidos | `frontend/src/components/LibroPedidos.jsx` | vista Pedidos: libro abierto con dos ganchos |
 | Entradas manuscritas | `frontend/src/components/PedidoManuscrito.jsx` | pedidos escritos a mano dentro del libro |
 | Configuración de colores y `<body>` | `frontend/index.html` | Tailwind por CDN |
@@ -40,11 +45,26 @@
 | Conexión a MySQL | `backend/app/database.py` + `backend/.env` | credenciales en `.env` |
 | Build publicado | `frontend/dist/` | **no editar a mano**, se regenera |
 
-Rutas en el navegador (definidas en `frontend/src/App.jsx`, líneas 39–42):
+Rutas en el navegador (definidas en `frontend/src/App.jsx`):
 
-- `/solicitar` → `Solicitar.jsx`
-- `/tablero` → `Tablero.jsx`
-- `/` redirige a `/tablero`
+- `/solicitar` → `Solicitar.jsx` (solo profesores)
+- `/tablero` → `Tablero.jsx` (solo pañolera)
+- `/usuarios` → `Usuarios.jsx` (solo pañolera)
+- `/` redirige según el rol: pañolera → `/tablero`, profesor → `/solicitar`
+
+Sin sesión iniciada se muestra `Login.jsx` en cualquier ruta.
+
+### 1.1 Cuentas y permisos
+
+- El backend guarda los usuarios en la tabla `usuario` y las sesiones en `sesion`.
+- La cuenta inicial de la pañolera se crea sola al primer arranque:
+  `panolera` / `panol2026` (se cambia desde **Usuarios → Mi contraseña**).
+- La pañolera crea y desactiva cuentas de profesores desde `/usuarios`.
+- Los profesores no pueden ver `/tablero`, `/usuarios` ni llamar a esas APIs.
+- Cuando la pañolera confirma una entrega, se crea una fila en `notificacion` y se
+  envía en vivo por `WS /ws/notificaciones` al profesor dueño del pedido.
+- Archivos del backend: `backend/app/auth.py` (contraseñas), `backend/app/models.py`
+  (Usuario/Sesion/Notificacion) y `backend/app/main.py` (login, permisos y avisos).
 
 ---
 
@@ -123,53 +143,56 @@ Estos no pasan por la paleta y hay que editarlos en el lugar:
 
 ## 3. Barra superior (aparece en todas las páginas)
 
-Archivo: **`frontend/src/App.jsx`**, línea 35.
+Archivo: **`frontend/src/App.jsx`** (componente `BarraSuperior`).
 
 ```
 <nav className="bg-papel2 text-tinta border-b-2 border-rojo2 ...">
-  📱 Solicitar   → línea 36
-  📋 Tablero     → línea 37
+  Pañolera: 📋 Tablero · 👥 Usuarios
+  Profesor: 📱 Solicitar
 </nav>
 ```
 
-- Fondo: `bg-papel2` → línea 35.
-- Filete rojo inferior: `border-b-2 border-rojo2` → línea 35.
-- Texto: `text-tinta` → línea 35.
+- La barra cambia según el rol del usuario logueado.
+- A la derecha muestra el nombre y el botón **Salir**.
+- Fondo: `bg-papel2`; filete inferior: `border-b-2 border-rojo2`; texto: `text-tinta`.
 
 ---
 
 ## 4. Página "Solicitar" (celular)
 
-Archivo: **`frontend/src/pages/Solicitar.jsx`** (`return` en la línea 77).
+Archivo: **`frontend/src/pages/Solicitar.jsx`** (`return` en la línea 217).
 
-| Qué | Línea | Texto / clase |
-|---|---|---|
-| Título de la página | 79 | `🔧 Solicitar Material` |
-| Formulario del alumno | 80 | `<FormularioAlumno />` |
-| Subtítulo "Herramientas" | 81 | `Herramientas` |
-| Buscador y selector | 82 | `<SelectorHerramientas />` |
-| Rótulo de insumos | 83 | `Otros materiales / Insumos` |
-| Caja de texto libre | 84–85 | placeholder `Ej: 2m de cable 1.5...` |
-| Botón enviar | 86–88 | `📦 Solicitar Material` |
-| Mensaje de éxito/error | 90 | usa `msg.clase` (líneas 40, 43, 59, 69, 73) |
-| Cartel "sin stock" | 92–104 | fondo del modal en 93, caja en 94 |
-| Título del cartel | 96 | `Material no disponible` |
-| Texto del cartel | 97–98 | `El material no está en stock` / `Ya fue solicitado…` |
-| Botón "Entendido" | 99–101 | |
-
-### 4.1 Formulario del alumno
-
-Archivo: **`frontend/src/components/FormularioAlumno.jsx`**
-
-| Qué | Línea |
+| Qué | Texto / clase |
 |---|---|
-| Fondo de la tarjeta (`bg-papel2`) | 43 |
-| Estilo de los inputs | 39 (`inputClass`) |
-| Estilo de los rótulos | 40 (`labelClass`) |
-| Rótulo DNI + input | 44–45 |
-| Rótulo Nombre + input | 46–47 |
-| Rótulo Curso + select | 50–54 |
-| Rótulo División + select | 57–61 |
+| Título de la página | `🔧 Solicitar Material` |
+| Botón para habilitar notificaciones del navegador | `🔔 Activar avisos` |
+| Datos del profesor | `<FormularioProfesor />` |
+| Subtítulo "Herramientas" | `Herramientas` |
+| Buscador y selector | `<SelectorHerramientas />` |
+| Rótulo de insumos | `Otros materiales / Insumos` |
+| Caja de texto libre | placeholder `Ej: 2m de cable 1.5...` |
+| Botón enviar | `📦 Solicitar Material` |
+| Mensaje de éxito/error | usa `msg.clase` |
+| Aviso de pedido listo | tarjeta fija abajo: `Pedido listo para retirar` |
+| Botón del aviso | `✅ Entendido, ya lo retiro` |
+| Cartel "sin stock" | `Material no disponible` / `El material no está en stock` |
+| Botón "Entendido" | |
+
+Los avisos se cargan al entrar a la página (`GET /api/mis-notificaciones`), llegan
+en vivo por `WS /ws/notificaciones?token=...` y, como respaldo, se consultan cada
+20 segundos. Al tocar **Entendido** se marcan como leídos en el backend.
+
+### 4.1 Formulario del profesor
+
+Archivo: **`frontend/src/components/FormularioProfesor.jsx`**
+
+| Qué |
+|---|
+| Fondo de la tarjeta (`bg-papel2`) |
+| Nombre y usuario salen de la sesión (no se escriben) |
+| Rótulo Curso + select |
+| Rótulo División + select |
+| Curso y división quedan guardados en `localStorage` por profesor |
 
 ### 4.2 Selector de herramientas
 
@@ -469,23 +492,35 @@ Otros textos:
 
 - El frontend pide todo a la API: `frontend/src/api.js` (líneas 1–10).
   Usa el mismo host, puerto `8000` (o `8001` si la página corre ahí).
-- WebSocket del tablero: `frontend/src/api.js`, línea 10.
+- WebSocket del tablero y de avisos al profesor: `frontend/src/api.js` (`wsTableroUrl` y `wsNotificacionesUrl`).
 - Endpoints en `backend/app/main.py`:
 
-| Endpoint | Línea |
+| Endpoint | Quién puede usarlo |
 |---|---|
-| `GET /api/herramientas` | 165 |
-| `POST /api/pedidos` | 181 |
-| `GET /api/pedidos` | 207 |
-| `GET /api/pedidos/ids` | 235 |
-| `GET /api/pedidos/fechas` | 247 |
-| `POST /api/pedidos/{id}/pasar-a-taller` | 258 |
-| `POST /api/pedidos/{id}/entregar` | 275 |
-| `POST /api/pedidos/{id}/devolver` | 288 |
-| `POST /api/pedidos/{id}/toggle-item` | 301 |
-| `POST /api/pedidos/{id}/cargar-devolucion` | 329 |
-| `GET /api/version` | 390 |
-| `WS /ws/tablero` | 408 |
+| `POST /api/auth/login` | público |
+| `GET /api/auth/me` | cualquier sesión |
+| `POST /api/auth/logout` | cualquier sesión |
+| `POST /api/auth/password` | cualquier sesión (cambia la propia) |
+| `GET /api/usuarios` | pañolera |
+| `POST /api/usuarios` | pañolera |
+| `PATCH /api/usuarios/{id}` | pañolera |
+| `DELETE /api/usuarios/{id}` | pañolera (desactiva la cuenta) |
+| `GET /api/herramientas` | cualquier sesión |
+| `POST /api/pedidos` | profesor |
+| `GET /api/pedidos` | pañolera |
+| `GET /api/pedidos/ids` | pañolera |
+| `GET /api/pedidos/fechas` | pañolera |
+| `POST /api/pedidos/{id}/pasar-a-taller` | pañolera |
+| `POST /api/pedidos/{id}/entregar` | pañolera |
+| `POST /api/pedidos/{id}/devolver` | pañolera |
+| `POST /api/pedidos/{id}/toggle-item` | pañolera |
+| `POST /api/pedidos/{id}/cargar-devolucion` | pañolera |
+| `GET /api/mis-notificaciones` | profesor (solo las propias, sin leer) |
+| `POST /api/notificaciones/{id}/leer` | profesor (solo las propias) |
+| `POST /api/notificaciones/leer-todas` | profesor |
+| `GET /api/version` | público |
+| `WS /ws/tablero?token=...` | pañolera |
+| `WS /ws/notificaciones?token=...` | profesor |
 
 - La app se sirve desde `frontend/dist` (montaje en `backend/app/main.py`, líneas 420–430).
 - La base es MySQL; credenciales y nombre de la base están en `backend/.env`

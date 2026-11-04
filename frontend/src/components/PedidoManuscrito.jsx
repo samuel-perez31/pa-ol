@@ -31,10 +31,11 @@ export default function PedidoManuscrito({ pedido, onAccion, index = 0, ultima =
       </div>
 
       <p className="mt-1.5 font-['Patrick_Hand'] text-[17px] leading-snug text-tinta">
-        {pedido.alumno}
+        {pedido.profesor || pedido.alumno}
       </p>
       <p className="font-['Patrick_Hand'] text-[14px] leading-snug text-tinta/55">
-        DNI {pedido.dni}{pedido.curso ? ` · ${pedido.curso}` : ''}
+        {pedido.dni ? `DNI ${pedido.dni}` : pedido.usuario ? `@${pedido.usuario}` : ''}
+        {pedido.curso ? ` · ${pedido.curso}` : ''}
       </p>
 
       <ul className="mt-2 space-y-[1px] font-['Patrick_Hand'] text-[16px] leading-[1.4] text-tinta">

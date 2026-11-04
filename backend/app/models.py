@@ -13,6 +13,28 @@ class EstadoPedido(str, Enum):
     DEVUELTO = "DEVUELTO"
 
 
+class RolUsuario(str, Enum):
+    PANOLERA = "PANOLERA"
+    PROFESOR = "PROFESOR"
+
+
+class Usuario(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    usuario: str = Field(index=True, unique=True, max_length=60)
+    nombre: str = Field(max_length=120)
+    password_hash: str = Field(max_length=255)
+    rol: RolUsuario = Field(default=RolUsuario.PROFESOR)
+    activo: bool = Field(default=True)
+    creado: datetime = Field(default_factory=datetime.now)
+
+
+class Sesion(SQLModel, table=True):
+    token: str = Field(primary_key=True, max_length=128)
+    usuario_id: int = Field(foreign_key="usuario.id")
+    creada: datetime = Field(default_factory=datetime.now)
+    expira: datetime
+
+
 class Alumno(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dni: str = Field(index=True, unique=True, max_length=20)
@@ -30,7 +52,12 @@ class Herramienta(SQLModel, table=True):
 
 class Pedido(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    alumno_id: int = Field(foreign_key="alumno.id")
+    # Datos del sistema anterior (alumnos). Se mantienen para no perder el
+    # historial ya cargado.
+    alumno_id: Optional[int] = Field(default=None, foreign_key="alumno.id")
+    # Nuevo sistema de usuarios: el pedido pertenece a un profesor.
+    usuario_id: Optional[int] = Field(default=None, foreign_key="usuario.id")
+    curso: Optional[str] = Field(default=None, max_length=60)
     fecha_solicitud: datetime = Field(default_factory=datetime.now)
     fecha_entrega: Optional[datetime] = None
     fecha_devolucion: Optional[datetime] = None
@@ -56,3 +83,13 @@ class Pedido(SQLModel, table=True):
             except Exception:
                 return []
         return self.items_devueltos or []
+
+
+class Notificacion(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    usuario_id: int = Field(foreign_key="usuario.id", index=True)
+    pedido_id: Optional[int] = Field(default=None, foreign_key="pedido.id")
+    tipo: str = Field(default="PEDIDO_LISTO", max_length=40)
+    mensaje: str = Field(max_length=300)
+    leida: bool = Field(default=False)
+    creada: datetime = Field(default_factory=datetime.now)

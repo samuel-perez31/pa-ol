@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { API, WS_URL } from '../api.js'
+import { apiFetch, wsTableroUrl } from '../api.js'
 import TarjetaPedido from '../components/TarjetaPedido.jsx'
 import LibroPedidos from '../components/LibroPedidos.jsx'
 import CarpetaDevueltos from '../components/CarpetaDevueltos.jsx'
@@ -102,7 +102,7 @@ export default function Tablero() {
     if (refRevisando.current) return
     refRevisando.current = true
     try {
-      const res = await fetch(`${API}/api/pedidos/ids`)
+      const res = await apiFetch('/api/pedidos/ids')
       if (!res.ok) return
       const lista = await res.json()
       const prev = refSnapshot.current
@@ -185,7 +185,7 @@ export default function Tablero() {
       setError(null)
       const fechaParam = fechaSeleccionada ? `&fecha=${fechaSeleccionada}` : ''
       const qParam = qRef.current ? `&q=${encodeURIComponent(qRef.current)}` : ''
-      const res = await fetch(`${API}/api/pedidos?${qParam}${fechaParam}`)
+      const res = await apiFetch(`/api/pedidos?${qParam}${fechaParam}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setPedidos(await res.json())
     } catch (e) {
@@ -197,7 +197,7 @@ export default function Tablero() {
 
   const cargarFechas = async () => {
     try {
-      const res = await fetch(`${API}/api/pedidos/fechas`)
+      const res = await apiFetch('/api/pedidos/fechas')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setFechasDisponibles(await res.json())
     } catch (e) {}
@@ -218,7 +218,7 @@ export default function Tablero() {
 
     const conectar = () => {
       if (cerrado) return
-      ws = new WebSocket(`${WS_URL}?s=${sesion}`)
+      ws = new WebSocket(wsTableroUrl(sesion))
       ws.onopen = () => setConectado(true)
       ws.onmessage = () => { revisarSonido(); cargar() }
       ws.onclose = () => {
@@ -239,7 +239,7 @@ export default function Tablero() {
 
   const accion = async (id, tipo) => {
     if (tipo === 'refresh') { cargar(); return }
-    await fetch(`${API}/api/pedidos/${id}/${tipo}`, { method: 'POST' })
+    await apiFetch(`/api/pedidos/${id}/${tipo}`, { method: 'POST' })
     cargar()
   }
 
@@ -433,13 +433,16 @@ export default function Tablero() {
   const historialFiltrado = () => {
     let filtrados = [...historialTotal]
 
-    // Buscar en nombre, DNI, fecha, herramientas y notas
+    // Buscar en profesor, usuario, DNI, fecha, herramientas y notas
     const busq = busquedaHistorial.trim().toLowerCase()
     if (busq) {
       filtrados = filtrados.filter(p => {
-        // Nombre del alumno
+        // Nombre del profesor
+        if (p.profesor && p.profesor.toLowerCase().includes(busq)) return true
         if (p.alumno && p.alumno.toLowerCase().includes(busq)) return true
-        // DNI
+        // Usuario
+        if (p.usuario && p.usuario.toLowerCase().includes(busq)) return true
+        // DNI (pedidos históricos)
         if (p.dni && p.dni.toLowerCase().includes(busq)) return true
         // Curso
         if (p.curso && p.curso.toLowerCase().includes(busq)) return true
@@ -478,15 +481,16 @@ export default function Tablero() {
     })
   }
 
-  // Agrupa las devoluciones por alumno (DNI) -> una carpeta por alumno
+  // Agrupa las devoluciones por profesor -> una carpeta por persona
   const agruparPorAlumno = (lista) => {
     const mapa = new Map()
     ;(lista || []).forEach(p => {
       const dni = (p.dni || '').toString().trim()
-      const nom = (p.alumno || 'Sin nombre').toString().trim()
-      const key = dni ? dni.toLowerCase() : nom.toLowerCase()
+      const username = (p.usuario || '').toString().trim()
+      const nom = (p.profesor || p.alumno || 'Sin nombre').toString().trim()
+      const key = (username || dni || nom).toLowerCase()
       if (!mapa.has(key)) {
-        mapa.set(key, { key, nombre: nom, dni: dni || '—', devoluciones: [] })
+        mapa.set(key, { key, nombre: nom, dni, usuario: username, devoluciones: [] })
       }
       mapa.get(key).devoluciones.push(p)
     })
@@ -556,7 +560,7 @@ export default function Tablero() {
               >
                 <span>👤</span>
                 <span className="text-sm font-semibold">{g.nombre}</span>
-                <span className="text-xs opacity-70">DNI {g.dni}</span>
+                <span className="text-xs opacity-70">{g.dni ? `DNI ${g.dni}` : g.usuario ? `@${g.usuario}` : ''}</span>
                 <span
                   className="ml-1 px-1.5 rounded-full text-[10px] font-bold"
                   style={{
@@ -659,7 +663,7 @@ export default function Tablero() {
             {pedidosOrdenados.length ? (
               pedidosOrdenados.map(p => (
                 <div key={p.id} className="bg-papel2 rounded border border-verde/40 p-3 mb-2">
-                  <div className="font-medium text-tinta">{p.alumno}</div>
+                  <div className="font-medium text-tinta">{p.profesor || p.alumno}</div>
                   <div className="text-xs text-tinta/75">{formatearFechaISO(p.fecha_solicitud)}</div>
                   <p className="text-xs text-tinta/85 mt-1">
                     {p.items.map((item, i) => `${item.cantidad}× ${item.nombre}${i < p.items.length - 1 && ', ' || ''}`).join(', ')}
@@ -818,7 +822,7 @@ export default function Tablero() {
               </svg>
               <input
                 type="text"
-                placeholder="Buscar por nombre, DNI, fecha, herramienta..."
+                placeholder="Buscar por profesor, usuario, fecha, herramienta..."
                 value={busquedaHistorial}
                 onChange={(e) => setBusquedaHistorial(e.target.value)}
                 className="h-10 w-[300px] rounded-md border border-[#BBB88C] bg-papel pl-9 pr-3 text-sm placeholder:text-[#637758] focus:outline-none focus:ring-2 focus:ring-verdeoscuro transition"
@@ -982,7 +986,7 @@ export default function Tablero() {
               <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tinta/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
               </svg>
-              <input type="text" placeholder="Buscar por alumno, DNI o herramienta..."
+              <input type="text" placeholder="Buscar por profesor, usuario o herramienta..."
                 className="pl-14 pr-4 h-10 w-[230px] rounded-md border border-[#BBB88C] bg-papel text-sm placeholder:text-[#637758] focus:outline-none focus:ring-2 focus:ring-verdeoscuro transition" />
             </div>
             <button title="Filtrar" className="text-tinta/75 hover:text-tinta transition">

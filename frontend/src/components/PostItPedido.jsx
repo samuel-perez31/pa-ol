@@ -100,7 +100,9 @@ export default function PostItPedido({ pedido, onAccion, accion = 'entregar', la
             {fmtFecha(fecha)}{pedido.curso ? ` · ${pedido.curso}` : ''}
           </div>
           <div className="text-xs mt-1" style={{ color: C.neutral400 }}>
-            👤 {pedido.alumno} · DNI {pedido.dni}{hora ? ` · ${hora}` : ''}
+            👤 {pedido.profesor || pedido.alumno}
+            {pedido.dni ? ` · DNI ${pedido.dni}` : pedido.usuario ? ` · @${pedido.usuario}` : ''}
+            {hora ? ` · ${hora}` : ''}
           </div>
           {pedido.notas && (
             <p className="text-xs italic mt-1 leading-snug" style={{ color: C.neutral500 }}>{pedido.notas}</p>

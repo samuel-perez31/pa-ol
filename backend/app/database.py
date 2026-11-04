@@ -4,10 +4,11 @@ from urllib.parse import quote_plus
 
 import openpyxl
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlmodel import SQLModel, Session, select
 
-from .models import Herramienta
+from .auth import hash_password
+from .models import Herramienta, RolUsuario, Usuario
 
 load_dotenv()
 
@@ -42,6 +43,48 @@ def leer_inventario_excel():
     return items
 
 
+def _agregar_columna_si_falta(tabla: str, columna: str, definicion: str):
+    """Migración mínima para bases que ya existían antes del sistema de usuarios."""
+    inspector = inspect(engine)
+    if tabla not in inspector.get_table_names():
+        return
+    columnas = {c["name"] for c in inspector.get_columns(tabla)}
+    if columna not in columnas:
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE `{tabla}` ADD COLUMN `{columna}` {definicion}"))
+
+
+def _migrar_tabla_pedidos():
+    _agregar_columna_si_falta("pedido", "usuario_id", "INT NULL")
+    _agregar_columna_si_falta("pedido", "curso", "VARCHAR(60) NULL")
+    # Antes alumno_id era obligatorio. Ahora los pedidos nuevos se guardan
+    # contra un usuario (profesor), así que debe aceptar NULL.
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE `pedido` MODIFY COLUMN `alumno_id` INT NULL"))
+    except Exception:
+        pass
+
+
+def _crear_usuario_inicial():
+    """Crea la cuenta de la pañolera la primera vez que arranca la app."""
+    with Session(engine) as session:
+        if session.exec(select(Usuario)).first():
+            return
+        usuario = os.getenv("PANOLERA_USUARIO", "panolera").strip().lower()
+        password = os.getenv("PANOLERA_PASSWORD", "panol2026")
+        session.add(
+            Usuario(
+                usuario=usuario,
+                nombre=os.getenv("PANOLERA_NOMBRE", "Pañolera"),
+                password_hash=hash_password(password),
+                rol=RolUsuario.PANOLERA,
+                activo=True,
+            )
+        )
+        session.commit()
+
+
 def init_db():
     with server_engine.connect() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
@@ -49,6 +92,8 @@ def init_db():
     # NO borrar tablas existentes: create_all solo crea las que faltan.
     # (Antes se hacía drop_all en cada arranque y se perdían los datos.)
     SQLModel.metadata.create_all(engine)
+    _migrar_tabla_pedidos()
+    _crear_usuario_inicial()
     with Session(engine) as session:
         if not session.exec(select(Herramienta)).first():
             for nombre, categoria in leer_inventario_excel():

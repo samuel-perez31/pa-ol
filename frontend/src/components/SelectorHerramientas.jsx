@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { API } from '../api.js'
+import { apiFetch } from '../api.js'
 
 const C = {
   milpa: '#637758',
@@ -31,7 +31,7 @@ export default function SelectorHerramientas({ conteos, setConteos }) {
   }
 
   useEffect(() => {
-    fetch(`${API}/api/herramientas`).then(r => r.json()).then(setHerramientas).catch(() => {})
+    apiFetch('/api/herramientas').then(r => r.json()).then(setHerramientas).catch(() => {})
   }, [])
 
   // Stock que le queda a una herramienta: usar el mayor entre disponible y cantidad, o cantidad

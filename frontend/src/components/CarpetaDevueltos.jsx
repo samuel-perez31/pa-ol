@@ -168,7 +168,9 @@ function PostItDevuelto({ pedido: p, indice: i }) {
       </div>
 
       <div className="mt-1.5 break-words font-['Patrick_Hand'] text-[13px] leading-tight text-[#071628]">{p.alumno}</div>
-      <div className="font-['Patrick_Hand'] text-[11px] text-[#071628]">DNI {p.dni}</div>
+      <div className="font-['Patrick_Hand'] text-[11px] text-[#071628]">
+        {p.dni ? `DNI ${p.dni}` : p.usuario ? `@${p.usuario}` : ''}
+      </div>
 
       <ul className="mt-1.5 flex-1 space-y-0.5 overflow-hidden text-[11px] leading-snug text-[#071628]">
         {(p.items || []).slice(0, 4).map((it, ix) => (

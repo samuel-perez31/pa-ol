@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { API } from '../api.js'
+import { apiFetch } from '../api.js'
 
 const C = {
   milpa: '#637758',
@@ -43,7 +43,7 @@ export default function TarjetaPedido({ pedido, onAccion, modoPedidos, modoPasar
 
   const toggleItem = async (nombre, cantidad) => {
     try {
-      await fetch(`${API}/api/pedidos/${pedido.id}/toggle-item`, {
+      await apiFetch(`/api/pedidos/${pedido.id}/toggle-item`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, cantidad })
       })
@@ -54,7 +54,7 @@ export default function TarjetaPedido({ pedido, onAccion, modoPedidos, modoPasar
   const cargarDevolucion = async () => {
     setCargandoDevolucion(true)
     try {
-      const res = await fetch(`${API}/api/pedidos/${pedido.id}/cargar-devolucion`, { method: 'POST' })
+      const res = await apiFetch(`/api/pedidos/${pedido.id}/cargar-devolucion`, { method: 'POST' })
       const data = await res.json()
       const mensajes = {
         completa: '✅ Devolución COMPLETA - Todos los items devueltos (Stock actualizado)',
@@ -89,7 +89,9 @@ export default function TarjetaPedido({ pedido, onAccion, modoPedidos, modoPasar
             {fmtFecha(fecha)}{pedido.curso ? ` · ${pedido.curso}` : ''}
           </div>
           <div className="text-xs mt-1" style={{ color: C.neutral400 }}>
-            👤 {pedido.alumno} · DNI {pedido.dni}{hora ? ` · ${hora}` : ''}
+            👤 {pedido.profesor || pedido.alumno}
+            {pedido.dni ? ` · DNI ${pedido.dni}` : pedido.usuario ? ` · @${pedido.usuario}` : ''}
+            {hora ? ` · ${hora}` : ''}
           </div>
           {pedido.notas && (() => {
             const notasLimpias = String(pedido.notas).replace(/\[EN_TALLER\]/g, '').trim()

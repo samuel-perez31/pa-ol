@@ -1,16 +1,27 @@
-from datetime import datetime, date
+import json
+from datetime import datetime, date, timedelta
 from typing import List, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, Depends, Header, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from .database import init_db, get_session
-from .models import Alumno, Herramienta, Pedido, EstadoPedido
+from .auth import hash_password, token_nuevo, verificar_password
+from .database import engine, init_db, get_session
+from .models import (
+    Alumno,
+    EstadoPedido,
+    Herramienta,
+    Notificacion,
+    Pedido,
+    RolUsuario,
+    Sesion,
+    Usuario,
+)
 
 app = FastAPI(title="Pañol - Gestión Ágil")
 
@@ -67,6 +78,58 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+class NotificationManager:
+    """Una lista de conexiones por profesor para avisos en vivo."""
+
+    def __init__(self):
+        self.por_usuario: dict = {}
+
+    async def connect(self, ws: WebSocket, usuario_id: int):
+        await ws.accept()
+        self.por_usuario.setdefault(usuario_id, []).append(ws)
+
+    def disconnect(self, ws: WebSocket, usuario_id: int):
+        conexiones = self.por_usuario.get(usuario_id, [])
+        if ws in conexiones:
+            conexiones.remove(ws)
+        if not conexiones:
+            self.por_usuario.pop(usuario_id, None)
+
+    async def enviar(self, usuario_id: int, payload: dict):
+        for ws in list(self.por_usuario.get(usuario_id, [])):
+            try:
+                await ws.send_text(json.dumps(payload, default=str))
+            except Exception:
+                self.disconnect(ws, usuario_id)
+
+
+noti_manager = NotificationManager()
+
+
+class LoginIn(BaseModel):
+    usuario: str
+    password: str
+
+
+class UsuarioIn(BaseModel):
+    usuario: str
+    nombre: str
+    password: str
+    rol: RolUsuario = RolUsuario.PROFESOR
+
+
+class UsuarioUpdateIn(BaseModel):
+    usuario: Optional[str] = None
+    nombre: Optional[str] = None
+    password: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+class PasswordIn(BaseModel):
+    actual: str
+    nueva: str
+
+
 class ItemIn(BaseModel):
     nombre: str
     cantidad: int
@@ -78,15 +141,76 @@ class ItemDevueltoIn(BaseModel):
 
 
 class PedidoIn(BaseModel):
-    dni: str
-    nombre: str
-    curso: str
     items: List[ItemIn]
     notas: Optional[str] = None
+    curso: Optional[str] = None
+    division: Optional[str] = None
+
+
+# ---------- Sesiones y permisos ----------
+
+def usuario_publico(u: Usuario) -> dict:
+    return {
+        "id": u.id,
+        "usuario": u.usuario,
+        "nombre": u.nombre,
+        "rol": u.rol.value if isinstance(u.rol, RolUsuario) else u.rol,
+        "activo": u.activo,
+    }
+
+
+def _usuario_por_token(token: Optional[str], session: Session) -> Usuario:
+    if not token:
+        raise HTTPException(401, "Sesión requerida")
+    sesion = session.get(Sesion, token)
+    if not sesion or sesion.expira < datetime.now():
+        if sesion:
+            session.delete(sesion)
+            session.commit()
+        raise HTTPException(401, "Sesión vencida")
+    usuario = session.get(Usuario, sesion.usuario_id)
+    if not usuario or not usuario.activo:
+        raise HTTPException(401, "Usuario inactivo o inexistente")
+    return usuario
+
+
+def usuario_actual(
+    authorization: Optional[str] = Header(default=None),
+    session: Session = Depends(get_session),
+) -> Usuario:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "Sesión requerida")
+    return _usuario_por_token(authorization.split(" ", 1)[1].strip(), session)
+
+
+def solo_panolera(usuario: Usuario = Depends(usuario_actual)) -> Usuario:
+    if usuario.rol != RolUsuario.PANOLERA:
+        raise HTTPException(403, "Solo la pañolera puede hacer esto")
+    return usuario
+
+
+def solo_profesor(usuario: Usuario = Depends(usuario_actual)) -> Usuario:
+    if usuario.rol != RolUsuario.PROFESOR:
+        raise HTTPException(403, "Solo los profesores pueden solicitar material")
+    return usuario
+
+
+def normalizar_usuario(valor: str) -> str:
+    return (valor or "").strip().lower()
+
+
+def validar_password(password: str):
+    if len(password or "") < 6:
+        raise HTTPException(400, "La contraseña debe tener al menos 6 caracteres")
 
 
 def pedido_to_dict(p: Pedido, session: Session) -> dict:
-    alumno = session.get(Alumno, p.alumno_id)
+    alumno = session.get(Alumno, p.alumno_id) if p.alumno_id else None
+    usuario = session.get(Usuario, p.usuario_id) if p.usuario_id else None
+    nombre = usuario.nombre if usuario else (alumno.nombre if alumno else "?")
+    nombre_usuario = usuario.usuario if usuario else ""
+    dni = alumno.dni if alumno else ""
+    curso = p.curso or (alumno.curso if alumno else "")
     items = p.items()
     items_devueltos = p.items_devueltos_list()
     
@@ -102,9 +226,13 @@ def pedido_to_dict(p: Pedido, session: Session) -> dict:
     
     return {
         "id": p.id,
-        "alumno": alumno.nombre if alumno else "?",
-        "dni": alumno.dni if alumno else "",
-        "curso": alumno.curso if alumno else "",
+        # "alumno" se mantiene por compatibilidad con los componentes que ya
+        # mostraban el nombre; ahora contiene al profesor que hizo el pedido.
+        "alumno": nombre,
+        "profesor": nombre,
+        "usuario": nombre_usuario,
+        "dni": dni,
+        "curso": curso,
         "estado": p.estado.value if isinstance(p.estado, EstadoPedido) else p.estado,
         "items": items_con_estado,
         "notas": p.notas,
@@ -118,37 +246,51 @@ def pedido_to_dict(p: Pedido, session: Session) -> dict:
     }
 
 
-def calcular_stock_disponible(herramienta_id: int, session: Session) -> int:
+def notificacion_to_dict(n: Notificacion, session: Session) -> dict:
+    pedido = session.get(Pedido, n.pedido_id) if n.pedido_id else None
+    return {
+        "id": n.id,
+        "tipo": n.tipo,
+        "mensaje": n.mensaje,
+        "leida": n.leida,
+        "creada": n.creada.isoformat() if n.creada else None,
+        "pedido_id": n.pedido_id,
+        "items": pedido.items() if pedido else [],
+        "curso": pedido.curso if pedido else None,
+    }
+
+
+def consumo_activo_por_nombre(session: Session) -> dict:
+    """Unidades ya comprometidas (pendientes o prestadas), agrupadas por nombre.
+
+    Se calcula una sola vez para no hacer una consulta por cada herramienta.
+    """
+    consumo = {}
+    for p in session.exec(select(Pedido)).all():
+        estado = p.estado.value if isinstance(p.estado, EstadoPedido) else p.estado
+        if estado not in ("PENDIENTE", "PRESTADO"):
+            continue
+        for item in p.items():
+            nombre = item.get("nombre")
+            if not nombre:
+                continue
+            consumo[nombre] = consumo.get(nombre, 0) + int(item.get("cantidad") or 0)
+    return consumo
+
+
+def calcular_stock_disponible(herramienta_id: int, session: Session, consumo: dict = None) -> int:
     """Calcula el stock disponible de una herramienta (total - prestados - pendientes)."""
     herramienta = session.get(Herramienta, herramienta_id)
     if not herramienta:
         return 0
-    
-    # Contar cuántas unidades están prestadas (estado PRESTADO)
-    prestados = 0
-    pedidos_prestados = session.exec(select(Pedido).where(Pedido.estado == EstadoPedido.PRESTADO)).all()
-    for p in pedidos_prestados:
-        for item in p.items():
-            # Buscar la herramienta por nombre para obtener su ID
-            h = session.exec(select(Herramienta).where(Herramienta.nombre == item["nombre"])).first()
-            if h and h.id == herramienta_id:
-                prestados += item["cantidad"]
-    
-    # Contar cuántas unidades están en pedidos pendientes (estado PENDIENTE)
-    # Prioridad para quien pidió primero
-    pendientes = 0
-    pedidos_pendientes = session.exec(select(Pedido).where(Pedido.estado == EstadoPedido.PENDIENTE)).all()
-    for p in pedidos_pendientes:
-        for item in p.items():
-            h = session.exec(select(Herramienta).where(Herramienta.nombre == item["nombre"])).first()
-            if h and h.id == herramienta_id:
-                pendientes += item["cantidad"]
-    
-    return max(0, herramienta.cantidad - prestados - pendientes)
+    if consumo is None:
+        consumo = consumo_activo_por_nombre(session)
+    return max(0, herramienta.cantidad - consumo.get(herramienta.nombre, 0))
 
 
 def validar_stock_pedido(items: List[ItemIn], session: Session):
     """Valida que haya stock suficiente para todos los items del pedido."""
+    consumo = consumo_activo_por_nombre(session)
     for item in items:
         herramienta = session.exec(select(Herramienta).where(Herramienta.nombre == item.nombre)).first()
         if not herramienta:
@@ -157,17 +299,170 @@ def validar_stock_pedido(items: List[ItemIn], session: Session):
         if item.cantidad > herramienta.cantidad:
             raise HTTPException(400, f"Stock insuficiente para '{item.nombre}': solo hay {herramienta.cantidad} unidad(es) en total")
         
-        disponible = calcular_stock_disponible(herramienta.id, session)
+        disponible = max(0, herramienta.cantidad - consumo.get(herramienta.nombre, 0))
         if item.cantidad > disponible:
             raise HTTPException(400, "Material no disponible en stock")
 
 
+@app.post("/api/auth/login")
+def login(data: LoginIn, session: Session = Depends(get_session)):
+    usuario = session.exec(
+        select(Usuario).where(Usuario.usuario == normalizar_usuario(data.usuario))
+    ).first()
+    if not usuario or not usuario.activo or not verificar_password(data.password, usuario.password_hash):
+        raise HTTPException(401, "Usuario o contraseña incorrectos")
+
+    ahora = datetime.now()
+    for vieja in session.exec(select(Sesion)).all():
+        if vieja.expira < ahora:
+            session.delete(vieja)
+
+    token = token_nuevo()
+    session.add(
+        Sesion(token=token, usuario_id=usuario.id, expira=ahora + timedelta(days=7))
+    )
+    session.commit()
+    return {"token": token, "usuario": usuario_publico(usuario)}
+
+
+@app.get("/api/auth/me")
+def mi_usuario(usuario: Usuario = Depends(usuario_actual)):
+    return usuario_publico(usuario)
+
+
+@app.post("/api/auth/logout")
+def logout(
+    authorization: Optional[str] = Header(default=None),
+    session: Session = Depends(get_session),
+):
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        sesion = session.get(Sesion, token)
+        if sesion:
+            session.delete(sesion)
+            session.commit()
+    return {"ok": True}
+
+
+@app.post("/api/auth/password")
+def cambiar_mi_password(
+    data: PasswordIn,
+    usuario: Usuario = Depends(usuario_actual),
+    session: Session = Depends(get_session),
+):
+    if not verificar_password(data.actual, usuario.password_hash):
+        raise HTTPException(400, "La contraseña actual no es correcta")
+    validar_password(data.nueva)
+    usuario.password_hash = hash_password(data.nueva)
+    session.add(usuario)
+    session.commit()
+    return {"ok": True}
+
+
+@app.get("/api/usuarios")
+def listar_usuarios(
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
+    usuarios = session.exec(select(Usuario).order_by(Usuario.nombre)).all()
+    return [usuario_publico(u) for u in usuarios]
+
+
+@app.post("/api/usuarios")
+def crear_usuario(
+    data: UsuarioIn,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
+    nombre_usuario = normalizar_usuario(data.usuario)
+    if not nombre_usuario or not data.nombre.strip():
+        raise HTTPException(400, "Completá usuario y nombre")
+    validar_password(data.password)
+    if session.exec(select(Usuario).where(Usuario.usuario == nombre_usuario)).first():
+        raise HTTPException(400, "Ese usuario ya existe")
+
+    usuario = Usuario(
+        usuario=nombre_usuario,
+        nombre=data.nombre.strip(),
+        password_hash=hash_password(data.password),
+        rol=data.rol,
+        activo=True,
+    )
+    session.add(usuario)
+    session.commit()
+    session.refresh(usuario)
+    return usuario_publico(usuario)
+
+
+@app.patch("/api/usuarios/{usuario_id}")
+def actualizar_usuario(
+    usuario_id: int,
+    data: UsuarioUpdateIn,
+    actual: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
+    usuario = session.get(Usuario, usuario_id)
+    if not usuario:
+        raise HTTPException(404, "Usuario no encontrado")
+
+    if data.usuario is not None:
+        nombre_usuario = normalizar_usuario(data.usuario)
+        if not nombre_usuario:
+            raise HTTPException(400, "El usuario no puede quedar vacío")
+        repetido = session.exec(
+            select(Usuario).where(Usuario.usuario == nombre_usuario)
+        ).first()
+        if repetido and repetido.id != usuario.id:
+            raise HTTPException(400, "Ese usuario ya existe")
+        usuario.usuario = nombre_usuario
+
+    if data.nombre is not None:
+        if not data.nombre.strip():
+            raise HTTPException(400, "El nombre no puede quedar vacío")
+        usuario.nombre = data.nombre.strip()
+
+    if data.password is not None:
+        validar_password(data.password)
+        usuario.password_hash = hash_password(data.password)
+
+    if data.activo is not None:
+        if not data.activo and usuario.id == actual.id:
+            raise HTTPException(400, "No podés desactivar tu propia cuenta")
+        usuario.activo = data.activo
+
+    session.add(usuario)
+    session.commit()
+    session.refresh(usuario)
+    return usuario_publico(usuario)
+
+
+@app.delete("/api/usuarios/{usuario_id}")
+def desactivar_usuario(
+    usuario_id: int,
+    actual: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
+    if usuario_id == actual.id:
+        raise HTTPException(400, "No podés desactivar tu propia cuenta")
+    usuario = session.get(Usuario, usuario_id)
+    if not usuario:
+        raise HTTPException(404, "Usuario no encontrado")
+    usuario.activo = False
+    session.add(usuario)
+    session.commit()
+    return {"ok": True}
+
+
 @app.get("/api/herramientas")
-def listar_herramientas(session: Session = Depends(get_session)):
+def listar_herramientas(
+    _: Usuario = Depends(usuario_actual),
+    session: Session = Depends(get_session),
+):
     herramientas = session.exec(select(Herramienta)).all()
+    consumo = consumo_activo_por_nombre(session)
     result = []
     for h in herramientas:
-        disponible = calcular_stock_disponible(h.id, session)
+        disponible = max(0, h.cantidad - consumo.get(h.nombre, 0))
         result.append({
             "id": h.id,
             "nombre": h.nombre,
@@ -179,23 +474,18 @@ def listar_herramientas(session: Session = Depends(get_session)):
 
 
 @app.post("/api/pedidos")
-async def crear_pedido(data: PedidoIn, session: Session = Depends(get_session)):
+async def crear_pedido(
+    data: PedidoIn,
+    profesor: Usuario = Depends(solo_profesor),
+    session: Session = Depends(get_session),
+):
     # Validar stock antes de crear el pedido
     validar_stock_pedido(data.items, session)
-    
-    alumno = session.exec(select(Alumno).where(Alumno.dni == data.dni)).first()
-    if not alumno:
-        alumno = Alumno(dni=data.dni, nombre=data.nombre, curso=data.curso)
-        session.add(alumno)
-        session.commit()
-        session.refresh(alumno)
-    else:
-        alumno.nombre = data.nombre
-        alumno.curso = data.curso
-        session.add(alumno)
-        session.commit()
 
-    pedido = Pedido(alumno_id=alumno.id, notas=data.notas)
+    curso = " ".join(
+        parte for parte in [(data.curso or "").strip(), (data.division or "").strip()] if parte
+    ) or None
+    pedido = Pedido(usuario_id=profesor.id, curso=curso, notas=data.notas)
     pedido.detalle_items = [{"nombre": i.nombre, "cantidad": i.cantidad} for i in data.items]
     session.add(pedido)
     session.commit()
@@ -205,7 +495,13 @@ async def crear_pedido(data: PedidoIn, session: Session = Depends(get_session)):
 
 
 @app.get("/api/pedidos")
-def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, fecha: Optional[str] = None, session: Session = Depends(get_session)):
+def listar_pedidos(
+    estado: Optional[str] = None,
+    q: Optional[str] = None,
+    fecha: Optional[str] = None,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     # Si no se pasa fecha, no filtrar por fecha (devuelve todos los históricos)
     fecha_filtro = date.fromisoformat(fecha) if fecha else None
     
@@ -221,19 +517,71 @@ def listar_pedidos(estado: Optional[str] = None, q: Optional[str] = None, fecha:
         d = pedido_to_dict(p, session)
         if q:
             ql = q.lower()
-            # Buscar en alumno, DNI, o en los nombres de las herramientas
-            match_alumno = ql in d["alumno"].lower()
+            # Buscar en profesor, usuario, DNI (histórico), curso o herramientas
+            match_profesor = ql in d["alumno"].lower()
+            match_usuario = ql in d["usuario"].lower()
             match_dni = ql in d["dni"]
+            match_curso = ql in (d["curso"] or "").lower()
             match_herramienta = any(ql in item["nombre"].lower() for item in d["items"])
-            if not (match_alumno or match_dni or match_herramienta):
+            if not (match_profesor or match_usuario or match_dni or match_curso or match_herramienta):
                 continue
         result.append(d)
     result.sort(key=lambda d: d["id"], reverse=True)
     return result
 
 
+@app.get("/api/mis-notificaciones")
+def mis_notificaciones(
+    profesor: Usuario = Depends(solo_profesor),
+    session: Session = Depends(get_session),
+):
+    """Avisos sin leer del profesor (por ejemplo, pedido listo para retirar)."""
+    notificaciones = session.exec(
+        select(Notificacion)
+        .where(Notificacion.usuario_id == profesor.id, Notificacion.leida == False)  # noqa: E712
+        .order_by(Notificacion.id.desc())
+    ).all()
+    return [notificacion_to_dict(n, session) for n in notificaciones]
+
+
+@app.post("/api/notificaciones/{notificacion_id}/leer")
+def leer_notificacion(
+    notificacion_id: int,
+    profesor: Usuario = Depends(solo_profesor),
+    session: Session = Depends(get_session),
+):
+    notificacion = session.get(Notificacion, notificacion_id)
+    if not notificacion or notificacion.usuario_id != profesor.id:
+        raise HTTPException(404, "Notificación no encontrada")
+    notificacion.leida = True
+    session.add(notificacion)
+    session.commit()
+    return {"ok": True}
+
+
+@app.post("/api/notificaciones/leer-todas")
+def leer_todas_notificaciones(
+    profesor: Usuario = Depends(solo_profesor),
+    session: Session = Depends(get_session),
+):
+    notificaciones = session.exec(
+        select(Notificacion).where(
+            Notificacion.usuario_id == profesor.id,
+            Notificacion.leida == False,  # noqa: E712
+        )
+    ).all()
+    for notificacion in notificaciones:
+        notificacion.leida = True
+        session.add(notificacion)
+    session.commit()
+    return {"ok": True, "leidas": len(notificaciones)}
+
+
 @app.get("/api/pedidos/ids")
-def listar_ids_estados(session: Session = Depends(get_session)):
+def listar_ids_estados(
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     """Lista liviana (id + estado) de todos los pedidos.
     Sirve para detectar cambios reales y disparar el sonido sólo cuando
     entra un pedido nuevo o se procesa uno."""
@@ -245,7 +593,10 @@ def listar_ids_estados(session: Session = Depends(get_session)):
 
 
 @app.get("/api/pedidos/fechas")
-def listar_fechas_pedidos(session: Session = Depends(get_session)):
+def listar_fechas_pedidos(
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     """Devuelve lista de fechas que tienen pedidos, ordenadas descendente."""
     pedidos = session.exec(select(Pedido)).all()
     fechas = set()
@@ -256,7 +607,11 @@ def listar_fechas_pedidos(session: Session = Depends(get_session)):
 
 
 @app.post("/api/pedidos/{pedido_id}/pasar-a-taller")
-async def pasar_a_taller(pedido_id: int, session: Session = Depends(get_session)):
+async def pasar_a_taller(
+    pedido_id: int,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     """Pasa un pedido confirmado desde 'Pendientes' a 'En taller' para que empiecen a tachar/devolver."""
     p = session.get(Pedido, pedido_id)
     if not p:
@@ -273,20 +628,47 @@ async def pasar_a_taller(pedido_id: int, session: Session = Depends(get_session)
 
 
 @app.post("/api/pedidos/{pedido_id}/entregar")
-async def entregar(pedido_id: int, session: Session = Depends(get_session)):
+async def entregar(
+    pedido_id: int,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     p = session.get(Pedido, pedido_id)
     if not p:
         raise HTTPException(404, "Pedido no encontrado")
+
+    estaba_pendiente = p.estado == EstadoPedido.PENDIENTE
     p.estado = EstadoPedido.PRESTADO
     p.fecha_entrega = datetime.now()
     session.add(p)
     session.commit()
+    session.refresh(p)
+
+    # Avisar al profesor (una sola vez) que puede pasar a retirar.
+    if p.usuario_id and estaba_pendiente:
+        notificacion = Notificacion(
+            usuario_id=p.usuario_id,
+            pedido_id=p.id,
+            tipo="PEDIDO_LISTO",
+            mensaje=f"Tu pedido #{p.id} está listo para retirar",
+        )
+        session.add(notificacion)
+        session.commit()
+        session.refresh(notificacion)
+        await noti_manager.enviar(
+            p.usuario_id, notificacion_to_dict(notificacion, session)
+        )
+
     await manager.broadcast("procesado")
     return pedido_to_dict(p, session)
 
 
 @app.post("/api/pedidos/{pedido_id}/devolver")
-async def devolver(pedido_id: int, session: Session = Depends(get_session)):
+async def devolver(
+    pedido_id: int,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     p = session.get(Pedido, pedido_id)
     if not p:
         raise HTTPException(404, "Pedido no encontrado")
@@ -299,7 +681,12 @@ async def devolver(pedido_id: int, session: Session = Depends(get_session)):
 
 
 @app.post("/api/pedidos/{pedido_id}/toggle-item")
-async def toggle_item_devuelto(pedido_id: int, data: ItemDevueltoIn, session: Session = Depends(get_session)):
+async def toggle_item_devuelto(
+    pedido_id: int,
+    data: ItemDevueltoIn,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     """Marca/desmarca un item como devuelto (para tachar items individualmente)."""
     p = session.get(Pedido, pedido_id)
     if not p:
@@ -327,7 +714,11 @@ async def toggle_item_devuelto(pedido_id: int, data: ItemDevueltoIn, session: Se
 
 
 @app.post("/api/pedidos/{pedido_id}/cargar-devolucion")
-async def cargar_devolucion(pedido_id: int, session: Session = Depends(get_session)):
+async def cargar_devolucion(
+    pedido_id: int,
+    _: Usuario = Depends(solo_panolera),
+    session: Session = Depends(get_session),
+):
     """Procesa la devolución completa/parcial/ninguna y actualiza stock."""
     p = session.get(Pedido, pedido_id)
     if not p:
@@ -407,6 +798,16 @@ def version_app():
 
 @app.websocket("/ws/tablero")
 async def ws_tablero(ws: WebSocket):
+    token = ws.query_params.get("token")
+    with Session(engine) as session:
+        try:
+            usuario = _usuario_por_token(token, session)
+            if usuario.rol != RolUsuario.PANOLERA:
+                raise HTTPException(403, "Solo la pañolera puede ver el tablero")
+        except HTTPException:
+            await ws.close(code=1008)
+            return
+
     sesion = ws.query_params.get("s")
     await manager.connect(ws, sesion)
     try:
@@ -414,6 +815,29 @@ async def ws_tablero(ws: WebSocket):
             await ws.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(ws)
+
+
+@app.websocket("/ws/notificaciones")
+async def ws_notificaciones(ws: WebSocket):
+    """Canal en vivo para avisarle al profesor que su pedido está listo."""
+    token = ws.query_params.get("token")
+    with Session(engine) as session:
+        try:
+            usuario = _usuario_por_token(token, session)
+            if usuario.rol != RolUsuario.PROFESOR:
+                raise HTTPException(403, "Solo los profesores reciben avisos")
+        except HTTPException:
+            await ws.close(code=1008)
+            return
+
+    await noti_manager.connect(ws, usuario.id)
+    try:
+        while True:
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        noti_manager.disconnect(ws, usuario.id)
 
 
 # Servir frontend React (build de Vite) - AL FINAL para no interceptar API/WS
