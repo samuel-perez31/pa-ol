@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch, wsTableroUrl } from '../api.js'
 import TarjetaPedido from '../components/TarjetaPedido.jsx'
+import TarjetaEnTaller from '../components/TarjetaEnTaller.jsx'
 import LibroPedidos from '../components/LibroPedidos.jsx'
 import CarpetaDevueltos from '../components/CarpetaDevueltos.jsx'
 import PostItPedido from '../components/PostItPedido.jsx'
@@ -406,7 +407,7 @@ export default function Tablero() {
     null
 
   const tarjetasPrestados = pedidosEnTaller.length ?
-    pedidosEnTaller.map(p => <TarjetaPedido key={p.id} pedido={p} onAccion={accion} />) :
+    pedidosEnTaller.map(p => <TarjetaEnTaller key={p.id} pedido={p} onAccion={accion} />) :
     null
 
   // Para "Devueltos hoy": solo los que fueron devueltos HOY, con la misma
@@ -790,7 +791,7 @@ export default function Tablero() {
         <section id="sec-prestados" className="scroll-mt-24">
           <h2 className="text-xl font-bold text-tinta">🔨 En taller / Prestados</h2>
           <p className="text-sm text-tinta mt-1">({pedidosPrestados.length} en taller)</p>
-          <div className="mt-6 space-y-5">
+          <div className="mt-6 max-w-4xl space-y-4">
             {tarjetasPrestados || <p className="text-center text-base text-tinta py-8">No hay pedidos en taller</p>}
           </div>
         </section>
