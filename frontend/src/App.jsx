@@ -12,21 +12,21 @@ function BarraSuperior({ usuario, onSalir }) {
   const esAdmin = usuario.rol === 'ADMIN'
   const puedeAdministrar = esPanolera || esAdmin
   return (
-    <nav className="bg-papel2 text-tinta border-b-2 border-rojo2 px-4 pt-[5px] pb-[9px] flex items-center gap-4 text-sm">
-      <div className="flex gap-4">
+    <nav className="sticky top-0 z-50 bg-papel2 text-tinta border-b-2 border-rojo2 px-2.5 sm:px-4 pt-[5px] pb-[9px] flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-4 text-sm">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-4 min-w-0">
         {puedeAdministrar ? (
           <>
-            <Link to="/tablero" className="hover:underline">📋 Tablero</Link>
-            <Link to="/usuarios" className="hover:underline">👥 Usuarios</Link>
+            <Link to="/tablero" className="hover:underline whitespace-nowrap">📋 Tablero</Link>
+            <Link to="/usuarios" className="hover:underline whitespace-nowrap">👥 Usuarios</Link>
             {esAdmin && (
-              <Link to="/solicitar" className="hover:underline">📱 Solicitar</Link>
+              <Link to="/solicitar" className="hover:underline whitespace-nowrap">📱 Solicitar</Link>
             )}
           </>
         ) : (
-          <Link to="/solicitar" className="hover:underline">📱 Solicitar</Link>
+          <Link to="/solicitar" className="hover:underline whitespace-nowrap">📱 Solicitar</Link>
         )}
       </div>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-3 shrink-0">
         <span className="text-xs text-tinta/70 hidden sm:inline">
           {esAdmin ? '🛡️' : esPanolera ? '🔑' : '👤'} {usuario.nombre}
         </span>

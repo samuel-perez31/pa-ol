@@ -12,7 +12,7 @@ function Gancho({ lado = 'izq' }) {
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 ${izq ? '-left-[26px]' : '-right-[26px]'}`}
+      className={`pointer-events-none absolute top-1/2 z-10 -translate-y-1/2 ${izq ? '-left-[26px]' : '-right-[26px]'}`}
     >
       <svg width="36" height="132" viewBox="0 0 36 132" className={izq ? '' : '-scale-x-100'}>
         <defs>

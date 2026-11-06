@@ -980,8 +980,8 @@ export default function Tablero() {
     { id: 'pedidos', label: 'Pedidos', num: pedidosAConfirmar.length, icon: '📦' },
     { id: 'pendientes', label: 'Pendientes', num: pedidosAPasar.length, icon: '⏳' },
     { id: 'prestados', label: 'En taller', num: pedidosEnTaller.length, icon: '🔧' },
-    { id: 'devueltos', label: 'Devueltos hoy', num: 3, icon: '↩️' },
-    { id: 'historial', label: 'Historial', num: 4, icon: '📚' },
+    { id: 'devueltos', label: 'Devueltos hoy', num: null, icon: '↩️' },
+    { id: 'historial', label: 'Historial', num: null, icon: '📚' },
   ]
 
   // El menú lateral abre la vista de una opción: cambia el contenido en el
@@ -1003,26 +1003,12 @@ export default function Tablero() {
   return (
     <div className="min-h-screen bg-papel">
       {/* ============ CABECERA ============ */}
-      <header className="sticky top-0 z-20 bg-papel border-b border-[#BBB88C]">
-        <div className="max-w-7xl mx-auto px-8 h-14 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-tinta flex items-center gap-2">
+      <header className="bg-papel border-b border-[#BBB88C] lg:sticky lg:top-9 lg:z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between">
+          <h1 className="text-lg sm:text-xl font-bold text-tinta flex items-center gap-2">
             <span>Sistema Pañol</span>
-            <span className="text-sm font-normal">• Panel de control</span>
+            <span className="text-sm font-normal hidden sm:inline">• Panel de control</span>
           </h1>
-          <div className="hidden sm:flex items-center gap-6 pr-3">
-            <div className="relative">
-              <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tinta/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-              </svg>
-              <input type="text" placeholder="Buscar por profesor, usuario o herramienta..."
-                className="pl-14 pr-4 h-10 w-[230px] rounded-md border border-[#BBB88C] bg-papel text-sm placeholder:text-[#637758] focus:outline-none focus:ring-2 focus:ring-verdeoscuro transition" />
-            </div>
-            <button title="Filtrar" className="text-tinta/75 hover:text-tinta transition">
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
-              </svg>
-            </button>
-          </div>
         </div>
       </header>
 
@@ -1030,24 +1016,24 @@ export default function Tablero() {
       <main>
         <div className="max-w-7xl mx-auto lg:flex lg:items-start">
           {/* ============ BARRA LATERAL — MENÚ (según la captura) ============ */}
-          <aside className="lg:w-64 shrink-0 sticky top-14 z-10">
-            <div className="pt-[81px] pb-8">
-              <div className="text-center text-sm font-semibold text-tinta">Menú</div>
-              <nav className="mt-2">
+          <aside className="lg:w-64 shrink-0 lg:sticky lg:top-[93px] lg:z-10">
+            <div className="px-4 pt-3 pb-4 lg:px-0 lg:pt-[81px] lg:pb-8">
+              <div className="text-left lg:text-center text-sm font-semibold text-tinta">Menú</div>
+              <nav className="mt-2 grid grid-cols-2 gap-1.5 lg:block">
                 {menuItems.map((item, i) => (
-                  <div key={item.id} className={i > 0 ? 'border-t border-[#BBB88C]' : ''}>
+                  <div key={item.id} className={i > 0 ? 'lg:border-t lg:border-[#BBB88C]' : ''}>
                     <button
                       onClick={() => irA(item.id)}
-                      className={`w-full h-10 my-0.5 flex items-center gap-2 pl-5 pr-4 rounded-[3px] text-left transition-colors ${vista === item.id ? 'bg-verdeoscuro text-papel' : 'text-tinta hover:bg-papel2'}`}
+                      className={`w-full h-10 my-0.5 flex items-center gap-1.5 lg:gap-2 pl-2.5 pr-2 lg:pl-5 lg:pr-4 rounded-[3px] text-left transition-colors border border-[#BBB88C]/70 lg:border-0 ${vista === item.id ? 'bg-verdeoscuro text-papel' : 'text-tinta hover:bg-papel2'}`}
                     >
-                      <span className="w-4 text-center text-base leading-none">{item.icon}</span>
-                      <span className="text-base flex-1">{item.label}</span>
+                      <span className="w-4 text-center text-sm lg:text-base leading-none">{item.icon}</span>
+                      <span className="text-xs sm:text-sm lg:text-base flex-1 truncate">{item.label}</span>
                       {vista === item.id ? (
-                        <span className="w-6 h-6 rounded-full bg-papel shrink-0" />
+                        <span className="w-5 h-5 lg:w-6 lg:h-6 rounded-full bg-papel shrink-0" />
                       ) : item.num != null ? (
-                        <span className="w-6 text-center text-xs shrink-0">{item.num}</span>
+                        <span className="w-5 lg:w-6 text-center text-xs shrink-0">{item.num}</span>
                       ) : (
-                        <span className="w-6 shrink-0" />
+                        <span className="w-5 lg:w-6 shrink-0" />
                       )}
                     </button>
                   </div>
@@ -1057,7 +1043,7 @@ export default function Tablero() {
           </aside>
 
           {/* ============ ÁREA DE CONTENIDO PRINCIPAL ============ */}
-          <div className="flex-1 min-w-0 px-6 pt-[87px] pb-16">
+          <div className="flex-1 min-w-0 px-4 pt-5 pb-16 sm:px-6 lg:pt-[87px]">
             {renderVista()}
           </div>
         </div>
