@@ -1,0 +1,526 @@
+/* ================================================================
+   Hoja única de "En taller"
+   Usa la textura de papel subida en "Imagenes para usar", teñida
+   en CSS de marrón claro. Cada hoja muestra hasta 5 pedidos.
+   ================================================================ */
+
+.hoja-taller-wrap {
+  --hoja-rot: 0deg;
+  position: relative;
+  transform: rotate(var(--hoja-rot));
+  transform-origin: 50% 50%;
+  filter:
+    drop-shadow(0 7px 8px rgba(66, 54, 36, 0.14))
+    drop-shadow(0 1px 1px rgba(66, 54, 36, 0.07));
+  transition: transform 0.22s ease, filter 0.22s ease;
+}
+
+.hoja-taller-wrap:hover {
+  transform: rotate(0deg) translateY(-2px);
+  filter:
+    drop-shadow(0 11px 13px rgba(66, 54, 36, 0.17))
+    drop-shadow(0 2px 2px rgba(66, 54, 36, 0.08));
+}
+
+.hoja-taller {
+  --hoja-tinta: #071628;
+  --hoja-tinta-media: rgba(7, 22, 40, 0.72);
+  --hoja-tinta-tenue: rgba(7, 22, 40, 0.5);
+  /* Deja el contenido a la derecha de la línea vertical de la textura. */
+  --hoja-margen-izq: calc(15.5% + 1rem);
+  /*
+   * Ritmo de la hoja: la textura se sigue escalando a 32 renglones de
+   * 27,234 px (su escala natural), pero la foto tiene una separación real
+   * entre líneas de 27,278 px. El texto usa esa medida real para que las
+   * letras no se vayan "volando" respecto del renglón al bajar la hoja.
+   */
+  --hoja-renglon: 27.278px;
+  --hoja-renglon-fondo: 27.234px;
+  /* Ajustes finos para que la base de cada tipografía caiga en el renglón. */
+  --hoja-padding-cabecera: 5.12px;
+  --hoja-padding-titulo: 4.62px;
+  --hoja-desfase-meta: 3px;
+  --hoja-desfase-items: 2.5px;
+  /* Baja apenas el contenido para que la línea pase por debajo de las letras. */
+  --hoja-desfase-texto: 2px;
+  --hoja-items-margen: calc(var(--hoja-renglon) - 20.115px);
+  --hoja-items-padding-bottom: 20.115px;
+  --hoja-altura-acciones: calc(
+    4 * var(--hoja-renglon) - var(--hoja-padding-titulo) -
+      var(--hoja-desfase-meta)
+  );
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--hoja-tinta);
+  font-family: "Patrick Hand", "Caveat", cursive;
+  /* La foto es clara; este tono cálido la tiñe de marrón claro al multiplicarse. */
+  background-color: #fce8c8;
+  /*
+   * Recorte de la textura que empieza justo en el primer renglón. Se repite
+   * verticalmente: 32 renglones por bloque, sin cortar ninguna línea.
+   */
+  background-image: url("../assets/hoja-renglon.jpg");
+  background-position: center top;
+  background-repeat: repeat-y;
+  background-size: 100% calc(32 * var(--hoja-renglon-fondo));
+  background-blend-mode: multiply;
+  /* Borde izquierdo arrancado: dientes finos e irregulares. */
+  clip-path: polygon(
+    1.3% 0%,
+    100% 0%,
+    100% 100%,
+    1.4% 100%,
+    2.1% 97.2%,
+    0.8% 94.5%,
+    1.7% 91.8%,
+    0.7% 89%,
+    2.2% 86.2%,
+    1% 83.4%,
+    2.4% 80.6%,
+    0.7% 77.8%,
+    1.8% 75%,
+    0.9% 72.2%,
+    2.2% 69.4%,
+    0.8% 66.6%,
+    1.7% 63.8%,
+    0.7% 61%,
+    2.3% 58.2%,
+    0.9% 55.4%,
+    2% 52.6%,
+    0.8% 49.8%,
+    1.8% 47%,
+    0.7% 44.2%,
+    2.2% 41.4%,
+    0.8% 38.6%,
+    1.9% 35.8%,
+    0.9% 33%,
+    2.3% 30.2%,
+    0.7% 27.4%,
+    1.8% 24.6%,
+    0.8% 21.8%,
+    2.1% 19%,
+    0.9% 16.2%,
+    1.7% 13.4%,
+    0.7% 10.6%,
+    2% 7.8%,
+    1% 5%,
+    1.8% 2.4%
+  );
+  box-shadow:
+    inset 0 0 26px rgba(86, 56, 25, 0.12),
+    inset 13px 0 18px -15px rgba(86, 56, 25, 0.34),
+    inset -7px 0 16px -14px rgba(86, 56, 25, 0.12);
+}
+
+/* Sombra de envejecimiento en los bordes, por encima de la textura. */
+.hoja-taller::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 48%,
+    transparent 56%,
+    rgba(92, 62, 31, 0.09) 100%
+  );
+}
+
+.hoja-taller-contenido {
+  position: relative;
+  z-index: 2;
+  transform: translateY(var(--hoja-desfase-texto));
+}
+
+@keyframes hoja-taller-aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hoja-taller-entrar-derecha {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hoja-taller-entrar-izquierda {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---------- Cabecera y navegación entre hojas ---------- */
+
+.hoja-taller-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  height: calc(2 * var(--hoja-renglon));
+  padding: var(--hoja-padding-cabecera) 1.25rem 0 var(--hoja-margen-izq);
+}
+
+.hoja-taller-hoja-num {
+  font-family: "Caveat", "Patrick Hand", cursive;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: var(--hoja-renglon);
+  letter-spacing: 0.01em;
+  color: var(--hoja-tinta);
+}
+
+.hoja-taller-paginacion {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.hoja-taller-pagina-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  cursor: pointer;
+  border: 1px solid rgba(7, 22, 40, 0.38);
+  border-radius: 3px;
+  background: rgba(243, 240, 232, 0.55);
+  color: var(--hoja-tinta);
+  font-family: "Patrick Hand", "Caveat", cursive;
+  font-size: 1.3rem;
+  line-height: 1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(7, 22, 40, 0.12);
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.hoja-taller-pagina-btn:hover:not(:disabled) {
+  background: rgba(243, 240, 232, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 3px rgba(7, 22, 40, 0.16);
+}
+
+.hoja-taller-pagina-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.hoja-taller-pagina-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* ---------- Pedidos dentro de la hoja ---------- */
+
+.hoja-taller-pedidos {
+  position: relative;
+  z-index: 2;
+}
+
+.hoja-taller-pedidos-inicial {
+  animation: hoja-taller-aparecer 0.28s ease-out both;
+}
+
+.hoja-taller-pedidos-adelante {
+  animation: hoja-taller-entrar-derecha 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.hoja-taller-pedidos-atras {
+  animation: hoja-taller-entrar-izquierda 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.hoja-taller-pedido {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  box-sizing: border-box;
+  padding: var(--hoja-padding-titulo) 1.25rem 0 var(--hoja-margen-izq);
+}
+
+/* Renglón dibujado a mano: se apoya sobre el renglón de la textura. */
+.hoja-taller-pedido::after {
+  content: "";
+  position: absolute;
+  left: var(--hoja-margen-izq);
+  right: 1.25rem;
+  bottom: -2.8px;
+  width: auto;
+  height: 6px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='6' viewBox='0 0 120 6'%3E%3Cpath d='M0 3.2 Q 12 1.6 24 3.2 T 48 3.2 T 72 3.2 T 96 3.2 T 120 3.2' fill='none' stroke='%23071628' stroke-opacity='.28' stroke-width='1.15' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 120px 6px;
+  opacity: 0.85;
+}
+
+.hoja-taller-pedido:last-child::after {
+  display: none;
+}
+
+.hoja-taller-pedido-info {
+  min-width: 0;
+}
+
+.hoja-taller-pedido-titulo {
+  margin-bottom: var(--hoja-desfase-meta);
+  color: var(--hoja-tinta);
+  font-family: "Caveat", "Patrick Hand", cursive;
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: var(--hoja-renglon);
+}
+
+.hoja-taller-pedido-id {
+  font-family: "Caveat", "Patrick Hand", cursive;
+  font-weight: 700;
+  color: var(--hoja-tinta);
+}
+
+.hoja-taller-pedido-meta {
+  margin-top: 0;
+  color: var(--hoja-tinta-media);
+  font-family: "Patrick Hand", "Caveat", cursive;
+  font-size: 1.02rem;
+  line-height: var(--hoja-renglon);
+}
+
+.hoja-taller-pedido-notas {
+  margin-top: 0;
+  color: var(--hoja-tinta-media);
+  font-family: "Caveat", "Patrick Hand", cursive;
+  font-size: 1.2rem;
+  line-height: var(--hoja-renglon);
+}
+
+.hoja-taller-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  margin: var(--hoja-items-margen) 0 0;
+  padding: 0 0 var(--hoja-items-padding-bottom);
+  list-style: none;
+  color: var(--hoja-tinta);
+  font-family: "Patrick Hand", "Caveat", cursive;
+  font-size: 1.1rem;
+  line-height: var(--hoja-renglon);
+}
+
+.hoja-taller-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  line-height: var(--hoja-renglon);
+}
+
+.hoja-taller-item-texto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hoja-taller-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  height: var(--hoja-altura-acciones);
+  margin-top: 0;
+}
+
+.hoja-taller-acciones .hoja-taller-btn {
+  flex: 1 1 8.5rem;
+}
+
+/* ---------- Botones tipo sello de tinta azul ---------- */
+
+.hoja-taller-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.7rem;
+  padding: 0.5rem 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: "Patrick Hand", "Caveat", cursive;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  line-height: 1.05;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.hoja-taller-btn-mini {
+  min-height: 2.35rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 1.15rem;
+}
+
+.hoja-taller-btn:active {
+  transform: translateY(1px);
+}
+
+.hoja-taller-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Sello de tinta: se integra al papel, pero se despega del fondo. */
+.hoja-taller-btn-primario {
+  border: 1px solid var(--hoja-tinta);
+  background: var(--hoja-tinta);
+  color: #f3f0e8;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 240, 232, 0.14),
+    0 2px 3px rgba(7, 22, 40, 0.22);
+}
+
+.hoja-taller-btn-primario:hover {
+  background: #18324e;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 240, 232, 0.16),
+    0 2px 4px rgba(7, 22, 40, 0.26);
+}
+
+.hoja-taller-btn-secundario {
+  border: 1px solid rgba(7, 22, 40, 0.48);
+  background: rgba(243, 240, 232, 0.62);
+  color: var(--hoja-tinta);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 1px 2px rgba(7, 22, 40, 0.12);
+}
+
+.hoja-taller-btn-secundario:hover {
+  background: rgba(243, 240, 232, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 3px rgba(7, 22, 40, 0.16);
+}
+
+.hoja-taller-btn:focus-visible,
+.hoja-taller-pagina-btn:focus-visible,
+.hoja-taller-check:focus-visible {
+  outline: 2px solid var(--hoja-tinta);
+  outline-offset: 2px;
+}
+
+/* ---------- Casilleros de materiales ---------- */
+
+.hoja-taller-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.45rem;
+  height: 1.45rem;
+  cursor: pointer;
+  border: 1.5px solid rgba(7, 22, 40, 0.45);
+  border-radius: 3px;
+  background: rgba(243, 240, 232, 0.55);
+  color: var(--hoja-tinta);
+  font-family: "Patrick Hand", "Caveat", cursive;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.hoja-taller-check:hover {
+  background: rgba(243, 240, 232, 0.9);
+}
+
+.hoja-taller-check-hecho {
+  border-color: var(--hoja-tinta);
+  background: var(--hoja-tinta);
+  color: #f3f0e8;
+}
+
+.hoja-taller-item-devuelto {
+  color: var(--hoja-tinta-tenue);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* ---------- Escritorio: materiales a la derecha, pedido a la izquierda ---------- */
+
+@media (min-width: 640px) {
+  .hoja-taller {
+    /* En escritorio los materiales comparten la misma fila que los datos. */
+    --hoja-items-margen: var(--hoja-desfase-items);
+    --hoja-altura-acciones: calc(
+      2 * var(--hoja-renglon) - var(--hoja-padding-titulo) -
+        var(--hoja-desfase-meta)
+    );
+  }
+
+  .hoja-taller-cabecera {
+    padding-right: 1.5rem;
+  }
+
+  .hoja-taller-pedido {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 32%);
+    gap: 1rem;
+    padding-right: 1.5rem;
+  }
+
+  .hoja-taller-pedido::after {
+    right: auto;
+    width: calc(52% - 2rem);
+    max-width: 420px;
+  }
+
+  .hoja-taller-items {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .hoja-taller-item {
+    justify-content: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hoja-taller-wrap {
+    transition: none;
+  }
+
+  .hoja-taller-wrap:hover {
+    transform: rotate(var(--hoja-rot));
+  }
+
+  .hoja-taller-pedidos,
+  .hoja-taller-pedidos-inicial,
+  .hoja-taller-pedidos-adelante,
+  .hoja-taller-pedidos-atras {
+    animation: none;
+  }
+}

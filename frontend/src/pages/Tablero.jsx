@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch, wsTableroUrl } from '../api.js'
 import TarjetaPedido from '../components/TarjetaPedido.jsx'
-import TarjetaEnTaller from '../components/TarjetaEnTaller.jsx'
+import HojaEnTaller from '../components/HojaEnTaller.jsx'
 import LibroPedidos from '../components/LibroPedidos.jsx'
 import CarpetaDevueltos from '../components/CarpetaDevueltos.jsx'
 import PostItPedido from '../components/PostItPedido.jsx'
@@ -134,6 +134,7 @@ export default function Tablero() {
   const [searchParams, setSearchParams] = useSearchParams()
   const vistaParam = searchParams.get('vista')
   const [vista, setVista] = useState(vistaParam || 'inicio')
+  const [paginaTaller, setPaginaTaller] = useState(0)
   const [portfolioAbierto, setPortfolioAbierto] = useState(false)
   const [portfolios, setPortfolios] = useState([])
   const [portfolioSeleccionado, setPortfolioSeleccionado] = useState(null)
@@ -248,9 +249,26 @@ export default function Tablero() {
   const pedidosAPasar = pedidos.filter(p => p.estado === 'PRESTADO' && !(p.notas && p.notas.includes('[EN_TALLER]'))) // Pedidos confirmados esperando pasar a taller
   const pedidosPendientes = pedidosAPasar
   const pedidosAConfirmar = pedidos.filter(p => p.estado === 'PENDIENTE') // Nuevos, por confirmar
-  const pedidosEnTaller = pedidos.filter(p => p.estado === 'PRESTADO' && p.notas && p.notas.includes('[EN_TALLER]')) // En taller para tachar/devolver
+  const pedidosEnTaller = pedidos
+    .filter(p => p.estado === 'PRESTADO' && p.notas && p.notas.includes('[EN_TALLER]')) // En taller para tachar/devolver
+    .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)) // Los más viejos primero: las hojas no se reordenan al llegar uno nuevo
   const pedidosPrestados = pedidosEnTaller
   const pedidosDevueltos = pedidos.filter(p => p.estado === 'DEVUELTO')
+
+  // La vista "En taller" agrupa hasta 5 pedidos por hoja. Al llegar el sexto
+  // se crea una hoja nueva y se navega con las flechas de la cabecera.
+  const PEDIDOS_POR_HOJA_TALLER = 5
+  const hojasTaller = []
+  for (let i = 0; i < pedidosEnTaller.length; i += PEDIDOS_POR_HOJA_TALLER) {
+    hojasTaller.push(pedidosEnTaller.slice(i, i + PEDIDOS_POR_HOJA_TALLER))
+  }
+  const totalHojasTaller = Math.max(1, hojasTaller.length)
+  const paginaTallerVisible = Math.min(paginaTaller, totalHojasTaller - 1)
+  const pedidosHojaTaller = hojasTaller[paginaTallerVisible] || []
+
+  useEffect(() => {
+    if (paginaTaller > totalHojasTaller - 1) setPaginaTaller(totalHojasTaller - 1)
+  }, [paginaTaller, totalHojasTaller])
 
   const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 
@@ -404,10 +422,6 @@ export default function Tablero() {
   // Tarjetas de cada vista - usando los filtros derivados
   const tarjetasPendientes = pedidosAPasar.length ?
     pedidosAPasar.map(p => <TarjetaPedido key={p.id} pedido={p} onAccion={accion} modoPasarATaller />) :
-    null
-
-  const tarjetasPrestados = pedidosEnTaller.length ?
-    pedidosEnTaller.map(p => <TarjetaEnTaller key={p.id} pedido={p} onAccion={accion} />) :
     null
 
   // Para "Devueltos hoy": solo los que fueron devueltos HOY, con la misma
@@ -790,9 +804,22 @@ export default function Tablero() {
         {vista === 'prestados' && (
         <section id="sec-prestados" className="scroll-mt-24">
           <h2 className="text-xl font-bold text-tinta">🔨 En taller / Prestados</h2>
-          <p className="text-sm text-tinta mt-1">({pedidosPrestados.length} en taller)</p>
-          <div className="mt-6 max-w-4xl space-y-4">
-            {tarjetasPrestados || <p className="text-center text-base text-tinta py-8">No hay pedidos en taller</p>}
+          <p className="text-sm text-tinta mt-1">
+            {pedidosPrestados.length} en taller
+            {pedidosPrestados.length > 0 && ` · ${totalHojasTaller} ${totalHojasTaller === 1 ? 'hoja' : 'hojas'}`}
+          </p>
+          <div className="mt-6 max-w-3xl">
+            {pedidosEnTaller.length ? (
+              <HojaEnTaller
+                pedidos={pedidosHojaTaller}
+                pagina={paginaTallerVisible}
+                totalPaginas={totalHojasTaller}
+                onCambiarPagina={setPaginaTaller}
+                onAccion={accion}
+              />
+            ) : (
+              <p className="text-center text-base text-tinta py-8">No hay pedidos en taller</p>
+            )}
           </div>
         </section>
         )}

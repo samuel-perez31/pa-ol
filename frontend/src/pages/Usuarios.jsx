@@ -128,13 +128,13 @@ export default function Usuarios() {
   }
 
   const profesores = usuarios.filter((u) => u.rol === 'PROFESOR')
-  const panoleras = usuarios.filter((u) => u.rol === 'PANOLERA')
+  const administradores = usuarios.filter((u) => u.rol !== 'PROFESOR')
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6">
       <h1 className={`text-2xl font-bold text-[${C.opulent}]`}>👥 Usuarios</h1>
       <p className={`text-sm text-[${C.neutral500}] mb-4`}>
-        Los profesores solo pueden entrar a la pestaña “Solicitar”. La pañolera administra el tablero y las cuentas.
+        Desde esta sección podés crear cuentas de profesor, cambiar tu contraseña y ver los usuarios con acceso al tablero.
       </p>
 
       {msg && (
@@ -270,11 +270,16 @@ export default function Usuarios() {
       </section>
 
       <section className="mt-6 bg-papel2/60 rounded-xl border border-glendale/60 p-4">
-        <h2 className={`font-bold text-[${C.opulent}] mb-2 text-sm`}>Cuentas de pañolera</h2>
+        <h2 className={`font-bold text-[${C.opulent}] mb-2 text-sm`}>Cuentas con acceso al tablero</h2>
         <ul className="text-sm text-tinta/80">
-          {panoleras.map((u) => (
+          {administradores.map((u) => (
             <li key={u.id}>
-              {u.nombre} <span className="text-xs">@{u.usuario}</span>{u.activo ? '' : ' (inactiva)'}
+              {u.nombre} <span className="text-xs">@{u.usuario}</span>
+              {' · '}
+              <span className="text-xs">
+                {u.rol === 'ADMIN' ? 'Administrador' : 'Pañolera'}
+              </span>
+              {u.activo ? '' : ' (inactiva)'}
             </li>
           ))}
         </ul>

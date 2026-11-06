@@ -4,24 +4,34 @@ Sistema web rápido para la gestión del pañol de una escuela técnica: los pro
 
 ## Usuarios y roles
 
-Hay dos roles:
+Hay tres roles:
 
 - **Pañolera**: entra al tablero (`/tablero`) y administra las cuentas de profesores (`/usuarios`). No puede pedir material.
 - **Profesor**: solo puede entrar a la pantalla de solicitud (`/solicitar`). Al pedir, el nombre sale de su cuenta y el profesor elige curso y división.
+- **Administrador**: puede usar todas las funciones (tablero, usuarios y solicitud de material).
 
 La primera vez que arranca la app se crea automáticamente la cuenta de la pañolera:
 
 - Usuario: `panolera`
 - Contraseña: `panol2026`
 
-> Cambiá esa contraseña desde **Usuarios → Mi contraseña** apenas empieces a usar el sistema.
+También se crea una cuenta de administrador con acceso a todas las funciones:
 
-Se puede cambiar la cuenta inicial antes del primer arranque con estas variables en `backend/.env`:
+- Usuario: `admin`
+- Contraseña: `123456`
+
+> Cambiá esas contraseñas desde **Usuarios → Mi contraseña** apenas empieces a usar el sistema.
+
+Se pueden cambiar las cuentas iniciales antes del primer arranque con estas variables en `backend/.env`:
 
 ```env
 PANOLERA_USUARIO=panolera
 PANOLERA_PASSWORD=panol2026
 PANOLERA_NOMBRE=Pañolera
+
+ADMIN_USUARIO=admin
+ADMIN_PASSWORD=123456
+ADMIN_NOMBRE=Administrador
 ```
 
 ## Estructura

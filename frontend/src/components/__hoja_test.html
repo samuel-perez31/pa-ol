@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./HojaEnTaller.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #f3f0e8; }
+    .test-shell { width: 768px; padding: 0; }
+  </style>
+</head>
+<body>
+<div class="test-shell">
+<article class="hoja-taller-wrap" style="--hoja-rot: 0deg">
+  <div class="hoja-taller">
+    <div class="hoja-taller-contenido">
+      <div class="hoja-taller-cabecera">
+        <span class="hoja-taller-hoja-num">Hoja 1 de 2</span>
+        <nav class="hoja-taller-paginacion" aria-label="Cambiar de hoja">
+          <button type="button" class="hoja-taller-pagina-btn" disabled>←</button>
+          <button type="button" class="hoja-taller-pagina-btn">→</button>
+        </nav>
+      </div>
+      <div class="hoja-taller-pedidos">
+        <div class="hoja-taller-pedido">
+          <div class="hoja-taller-pedido-info">
+            <div class="hoja-taller-pedido-titulo">Pedido <span class="hoja-taller-pedido-id">#101</span></div>
+            <div class="hoja-taller-pedido-meta">05/11/2026 · 3° A</div>
+            <div class="hoja-taller-pedido-meta">👤 Marcela Pérez · @marcela · 08:30</div>
+            <p class="hoja-taller-pedido-notas">Necesitamos los materiales para la clase de tecnología.</p>
+            <div class="hoja-taller-acciones">
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-primario hoja-taller-btn-mini">↩ Devuelto completo</button>
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-secundario hoja-taller-btn-mini">↺ Cargar devolución</button>
+            </div>
+          </div>
+          <ul class="hoja-taller-items">
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Destornillador Phillips</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">2× Alicate de punta</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Cinta aisladora</span></li>
+          </ul>
+        </div>
+        <div class="hoja-taller-pedido">
+          <div class="hoja-taller-pedido-info">
+            <div class="hoja-taller-pedido-titulo">Pedido <span class="hoja-taller-pedido-id">#102</span></div>
+            <div class="hoja-taller-pedido-meta">05/11/2026 · 2° B</div>
+            <div class="hoja-taller-pedido-meta">👤 Juan Gómez · @juan · 09:15</div>
+            <p class="hoja-taller-pedido-notas">Para el proyecto de electricidad.</p>
+            <div class="hoja-taller-acciones">
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-primario hoja-taller-btn-mini">↩ Devuelto completo</button>
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-secundario hoja-taller-btn-mini">↺ Cargar devolución</button>
+            </div>
+          </div>
+          <ul class="hoja-taller-items">
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Multímetro</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">3× Cables de prueba</span></li>
+          </ul>
+        </div>
+        <div class="hoja-taller-pedido">
+          <div class="hoja-taller-pedido-info">
+            <div class="hoja-taller-pedido-titulo">Pedido <span class="hoja-taller-pedido-id">#103</span></div>
+            <div class="hoja-taller-pedido-meta">05/11/2026 · 1° C</div>
+            <div class="hoja-taller-pedido-meta">👤 Lucía Fernández · @lucia · 10:00</div>
+            <p class="hoja-taller-pedido-notas">Materiales para la práctica de medición.</p>
+            <div class="hoja-taller-acciones">
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-primario hoja-taller-btn-mini">↩ Devuelto completo</button>
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-secundario hoja-taller-btn-mini">↺ Cargar devolución</button>
+            </div>
+          </div>
+          <ul class="hoja-taller-items">
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Calibre</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Regla metálica</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">2× Lápices</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Goma</span></li>
+          </ul>
+        </div>
+        <div class="hoja-taller-pedido">
+          <div class="hoja-taller-pedido-info">
+            <div class="hoja-taller-pedido-titulo">Pedido <span class="hoja-taller-pedido-id">#104</span></div>
+            <div class="hoja-taller-pedido-meta">05/11/2026 · 4° A</div>
+            <div class="hoja-taller-pedido-meta">👤 Pedro Ruiz · @pedro · 11:20</div>
+            <p class="hoja-taller-pedido-notas">Repuestos para el taller.</p>
+            <div class="hoja-taller-acciones">
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-primario hoja-taller-btn-mini">↩ Devuelto completo</button>
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-secundario hoja-taller-btn-mini">↺ Cargar devolución</button>
+            </div>
+          </div>
+          <ul class="hoja-taller-items">
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Soldador</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Estaño</span></li>
+          </ul>
+        </div>
+        <div class="hoja-taller-pedido">
+          <div class="hoja-taller-pedido-info">
+            <div class="hoja-taller-pedido-titulo">Pedido <span class="hoja-taller-pedido-id">#105</span></div>
+            <div class="hoja-taller-pedido-meta">05/11/2026 · 5° B</div>
+            <div class="hoja-taller-pedido-meta">👤 Ana López · @ana · 12:10</div>
+            <p class="hoja-taller-pedido-notas">Para la feria de ciencias.</p>
+            <div class="hoja-taller-acciones">
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-primario hoja-taller-btn-mini">↩ Devuelto completo</button>
+              <button type="button" class="hoja-taller-btn hoja-taller-btn-secundario hoja-taller-btn-mini">↺ Cargar devolución</button>
+            </div>
+          </div>
+          <ul class="hoja-taller-items">
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">1× Pinza</span></li>
+            <li class="hoja-taller-item"><button type="button" class="hoja-taller-check">✎</button><span class="hoja-taller-item-texto">2× Guantes</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+</div>
+<pre id="metrics">pending</pre>
+<script>
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const r = (el) => {
+      const b = el.getBoundingClientRect();
+      return { x: +b.x.toFixed(2), y: +b.y.toFixed(2), w: +b.width.toFixed(2), h: +b.height.toFixed(2), bottom: +b.bottom.toFixed(2) };
+    };
+    const sheet = document.querySelector('.hoja-taller');
+    const pedidos = [...document.querySelectorAll('.hoja-taller-pedido')].map((p) => {
+      const cs = getComputedStyle(p, '::after');
+      return {
+        row: r(p),
+        line: { left: cs.left, right: cs.right, bottom: cs.bottom, width: cs.width, height: cs.height },
+        info: r(p.querySelector('.hoja-taller-pedido-info')),
+        titulo: r(p.querySelector('.hoja-taller-pedido-titulo')),
+        metas: [...p.querySelectorAll('.hoja-taller-pedido-meta')].map(r),
+        notas: p.querySelector('.hoja-taller-pedido-notas') ? r(p.querySelector('.hoja-taller-pedido-notas')) : null,
+        acciones: r(p.querySelector('.hoja-taller-acciones')),
+        btn: r(p.querySelector('.hoja-taller-btn')),
+        items: r(p.querySelector('.hoja-taller-items')),
+        itemTexts: [...p.querySelectorAll('.hoja-taller-item-texto')].map(r),
+      };
+    });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const metrics = (font) => {
+      ctx.font = font;
+      const m = ctx.measureText('Hg');
+      return {
+        font,
+        ascent: +m.fontBoundingBoxAscent.toFixed(2),
+        descent: +m.fontBoundingBoxDescent.toFixed(2),
+        actualAscent: +m.actualBoundingBoxAscent.toFixed(2),
+        actualDescent: +m.actualBoundingBoxDescent.toFixed(2),
+        width: +m.width.toFixed(2),
+      };
+    };
+    const out = {
+      sheet: r(sheet),
+      header: r(document.querySelector('.hoja-taller-cabecera')),
+      pedidos,
+      fonts: {
+        patrick: document.fonts.check('16px "Patrick Hand"'),
+        caveat: document.fonts.check('16px "Caveat"'),
+      },
+      fontMetrics: [
+        metrics('1.7rem "Caveat"'),
+        metrics('1.02rem "Patrick Hand"'),
+        metrics('1.2rem "Caveat"'),
+        metrics('1.1rem "Patrick Hand"'),
+        metrics('1.6rem "Caveat"'),
+        metrics('1.25rem "Patrick Hand"'),
+      ],
+    };
+    document.getElementById('metrics').textContent = JSON.stringify(out, null, 2);
+  }, 1500);
+});
+</script>
+</body>
+</html>

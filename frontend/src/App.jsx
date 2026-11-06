@@ -9,13 +9,18 @@ import { API } from './api.js'
 
 function BarraSuperior({ usuario, onSalir }) {
   const esPanolera = usuario.rol === 'PANOLERA'
+  const esAdmin = usuario.rol === 'ADMIN'
+  const puedeAdministrar = esPanolera || esAdmin
   return (
     <nav className="bg-papel2 text-tinta border-b-2 border-rojo2 px-4 pt-[5px] pb-[9px] flex items-center gap-4 text-sm">
       <div className="flex gap-4">
-        {esPanolera ? (
+        {puedeAdministrar ? (
           <>
             <Link to="/tablero" className="hover:underline">📋 Tablero</Link>
             <Link to="/usuarios" className="hover:underline">👥 Usuarios</Link>
+            {esAdmin && (
+              <Link to="/solicitar" className="hover:underline">📱 Solicitar</Link>
+            )}
           </>
         ) : (
           <Link to="/solicitar" className="hover:underline">📱 Solicitar</Link>
@@ -23,7 +28,7 @@ function BarraSuperior({ usuario, onSalir }) {
       </div>
       <div className="ml-auto flex items-center gap-3">
         <span className="text-xs text-tinta/70 hidden sm:inline">
-          {esPanolera ? '🔑' : '👤'} {usuario.nombre}
+          {esAdmin ? '🛡️' : esPanolera ? '🔑' : '👤'} {usuario.nombre}
         </span>
         <button onClick={onSalir} className="text-xs font-semibold hover:underline text-rojo">
           Salir
@@ -72,12 +77,20 @@ export default function App() {
   if (!usuario) return <Login />
 
   const esPanolera = usuario.rol === 'PANOLERA'
+  const esAdmin = usuario.rol === 'ADMIN'
 
   return (
     <BrowserRouter>
       <BarraSuperior usuario={usuario} onSalir={logout} />
       <Routes>
-        {esPanolera ? (
+        {esAdmin ? (
+          <>
+            <Route path="/tablero" element={<Tablero />} />
+            <Route path="/usuarios" element={<Usuarios />} />
+            <Route path="/solicitar" element={<Solicitar />} />
+            <Route path="*" element={<Navigate to="/tablero" replace />} />
+          </>
+        ) : esPanolera ? (
           <>
             <Route path="/tablero" element={<Tablero />} />
             <Route path="/usuarios" element={<Usuarios />} />

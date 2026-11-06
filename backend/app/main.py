@@ -184,13 +184,14 @@ def usuario_actual(
 
 
 def solo_panolera(usuario: Usuario = Depends(usuario_actual)) -> Usuario:
-    if usuario.rol != RolUsuario.PANOLERA:
-        raise HTTPException(403, "Solo la pañolera puede hacer esto")
+    if usuario.rol not in (RolUsuario.PANOLERA, RolUsuario.ADMIN):
+        raise HTTPException(403, "Solo la pañolera o un administrador puede hacer esto")
     return usuario
 
 
 def solo_profesor(usuario: Usuario = Depends(usuario_actual)) -> Usuario:
-    if usuario.rol != RolUsuario.PROFESOR:
+    # El administrador también puede solicitar material (tiene todas las funciones).
+    if usuario.rol not in (RolUsuario.PROFESOR, RolUsuario.ADMIN):
         raise HTTPException(403, "Solo los profesores pueden solicitar material")
     return usuario
 
@@ -802,8 +803,8 @@ async def ws_tablero(ws: WebSocket):
     with Session(engine) as session:
         try:
             usuario = _usuario_por_token(token, session)
-            if usuario.rol != RolUsuario.PANOLERA:
-                raise HTTPException(403, "Solo la pañolera puede ver el tablero")
+            if usuario.rol not in (RolUsuario.PANOLERA, RolUsuario.ADMIN):
+                raise HTTPException(403, "Solo la pañolera o un administrador puede ver el tablero")
         except HTTPException:
             await ws.close(code=1008)
             return
@@ -824,7 +825,7 @@ async def ws_notificaciones(ws: WebSocket):
     with Session(engine) as session:
         try:
             usuario = _usuario_por_token(token, session)
-            if usuario.rol != RolUsuario.PROFESOR:
+            if usuario.rol not in (RolUsuario.PROFESOR, RolUsuario.ADMIN):
                 raise HTTPException(403, "Solo los profesores reciben avisos")
         except HTTPException:
             await ws.close(code=1008)

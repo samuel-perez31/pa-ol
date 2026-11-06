@@ -38,7 +38,7 @@
 | Página de solicitud | `frontend/src/pages/Solicitar.jsx` | celular / profesor |
 | Datos del profesor | `frontend/src/components/FormularioProfesor.jsx` | nombre de la cuenta + curso/división |
 | Página del tablero | `frontend/src/pages/Tablero.jsx` | pantalla grande / pañolera |
-| Hoja de "En taller" | `frontend/src/components/TarjetaEnTaller.jsx` + `.css` | foto `Hoja.jpg` teñida de marrón y borde arrancado |
+| Hoja de "En taller" | `frontend/src/components/HojaEnTaller.jsx` + `.css` | textura de papel teñida de marrón claro, letras azul tinta, borde arrancado y hasta 5 pedidos por hoja |
 | Libro de Pedidos | `frontend/src/components/LibroPedidos.jsx` | vista Pedidos: libro abierto con dos ganchos |
 | Entradas manuscritas | `frontend/src/components/PedidoManuscrito.jsx` | pedidos escritos a mano dentro del libro |
 | Configuración de colores y `<body>` | `frontend/index.html` | Tailwind por CDN |
@@ -261,7 +261,7 @@ El estado de la vista está en la línea 134 (`vista`). El render general empiez
 | Inicio | 686–723 | `📅 Hoy · <fecha>` (699) y `📚 Historial de hoy` (714–715) | contadores + carpetas del historial |
 | Pedidos | 760–763 | `Pedidos` (`LibroPedidos.jsx` 97) | `LibroPedidos` + `PedidoManuscrito` |
 | Pendientes | 765–783 | `⏳ Pendientes` (767) | `PostItPedido` |
-| En taller | 785–793 | `🔨 En taller / Prestados` (787) | `TarjetaEnTaller` |
+| En taller | 804–825 | `🔨 En taller / Prestados` (806) | `HojaEnTaller` (máx. 5 pedidos por hoja) |
 | Devueltos hoy | 795–802 | `✅ Devueltos hoy` (797) | `CarpetaDevueltos` (799) |
 | Historial | 804–939 | `📚 Historial General` (806) | carpetas por alumno |
 
@@ -270,7 +270,7 @@ Subtítulos y contadores:
 - "Inicio": contadores en 688–694, tarjetas en 701–708.
 - "Pedidos": título y contador dentro del libro (`LibroPedidos.jsx` 97–103); entradas manuscritas (`PedidoManuscrito.jsx`) repartidas entre las dos páginas.
 - "Pendientes": subtítulo en 773, grilla en 774–786.
-- "En taller": subtítulo en 793, listado en 794–796.
+- "En taller": subtítulo en 807–810, hoja única con paginación en 811–823.
 - "Devueltos hoy": sin subtítulo, solo la carpeta.
 - "Historial": subtítulo en 812–816.
 
@@ -314,19 +314,25 @@ Subtítulos y contadores:
 
 ### 6.1 Hoja de "En taller"
 
-Archivo: **`frontend/src/components/TarjetaEnTaller.jsx`**
-Estilos: **`frontend/src/components/TarjetaEnTaller.css`**
+Archivo: **`frontend/src/components/HojaEnTaller.jsx`**
+Estilos: **`frontend/src/components/HojaEnTaller.css`**
 
 | Qué | Dónde |
 |---|---|
-| Textura de arrugas | `frontend/src/assets/hoja.jpg` (copiada de `Imagenes para usar/Hoja.jpg`) |
+| Textura de arrugas | `frontend/src/assets/hoja.jpg` (copiada de `Imagenes para usar/WhatsApp Image 2026-11-05 at 08.18.17.jpeg`) |
 | Tinte marrón del papel | `.hoja-taller` en el CSS (`background-blend-mode: multiply`) |
+| Letras y tipografías | Caveat en títulos y notas; Patrick Hand en cuerpo, meta, materiales y botones; tamaños ampliados y color `#071628` |
+| Margen izquierdo | `--hoja-margen-izq: calc(15.5% + 1rem)` en `.hoja-taller`: deja el contenido a la derecha de la línea vertical de la textura |
 | Borde izquierdo arrancado | `clip-path` de `.hoja-taller` |
 | Sombra de envejecimiento | `::after` de `.hoja-taller` |
-| Inclinación de cada hoja | `ROTACIONES`, JSX línea 14 |
-| Mismo formato que las demás tarjetas | JSX líneas 60–113 |
-| Lista de materiales y casilleros | JSX líneas 82–101 |
-| Botones tipo etiqueta de tinta | `.hoja-taller-btn*`, CSS líneas 104–165 |
+| Agrupación de hasta 5 pedidos | `PEDIDOS_POR_HOJA_TALLER` en `Tablero.jsx` |
+| Navegación entre hojas | `.hoja-taller-cabecera` + `.hoja-taller-pagina-btn` |
+| Animación al cambiar de hoja | `key={pagina}` + animación direccional de `.hoja-taller-pedidos` |
+| Renglón dibujado a mano | `::after` de `.hoja-taller-pedido` (trazo azul tinta) |
+| Cada pedido dentro de la hoja | `.hoja-taller-pedido` |
+| Inclinación de la hoja | `ROTACIONES`, JSX línea 14 |
+| Lista de materiales y casilleros | `.hoja-taller-items` y `.hoja-taller-check` |
+| Botones tipo sello de tinta azul | `.hoja-taller-btn*` |
 
 > Solo la vista "En taller" usa esta hoja. "Devueltos hoy" e "Historial"
 > siguen usando `TarjetaPedido.jsx`.
@@ -551,7 +557,7 @@ Reglas de qué pedido aparece en cada lado (`Tablero.jsx`):
 |---|---|
 | Pedidos (PENDIENTE) | 248 |
 | Pendientes (PRESTADO sin `[EN_TALLER]`) | 246 |
-| En taller (PRESTADO con `[EN_TALLER]`) | 249 |
+| En taller (PRESTADO con `[EN_TALLER]`) | 252 |
 | Devueltos hoy | 271 |
 | Solicitados hoy | 274 |
 | Historial total | 277 |
@@ -586,7 +592,7 @@ Reglas de qué pedido aparece en cada lado (`Tablero.jsx`):
 | Tipografías manuscritas Caveat / Patrick Hand | `frontend/index.html` líneas 7–13 |
 | Color de todas las letras | `frontend/index.html` línea 24 (`tinta`) + objetos `C` de la sección 2.2 |
 | Fondo de las tarjetas | `TarjetaPedido.jsx` línea 83; `FormularioAlumno.jsx` 43; `SelectorHerramientas.jsx` 95 y 123 |
-| Textura, arrugas y borde arrancado de "En taller" | `TarjetaEnTaller.css` y `assets/hoja.jpg` |
+| Textura, arrugas y borde arrancado de "En taller" | `HojaEnTaller.css` y `assets/hoja.jpg` |
 | Verde de las carpetas | `CarpetaDevueltos.jsx` 324 y 336; `index.html` línea 29 (`carpeta`) |
 | Rojos de bordes | `CarpetaDevueltos.jsx` 182, 184, 252; `App.jsx` 35; `Tablero.jsx` 691–692 y 739 |
 | Título de una zona del tablero | `Tablero.jsx` 699, 767, 787, 797 u 806; el del libro en `LibroPedidos.jsx` 97 |

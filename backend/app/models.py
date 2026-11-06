@@ -16,6 +16,9 @@ class EstadoPedido(str, Enum):
 class RolUsuario(str, Enum):
     PANOLERA = "PANOLERA"
     PROFESOR = "PROFESOR"
+    # El administrador puede usar todas las funciones del sistema:
+    # tanto el tablero/cuentas como la solicitud de material.
+    ADMIN = "ADMIN"
 
 
 class Usuario(SQLModel, table=True):

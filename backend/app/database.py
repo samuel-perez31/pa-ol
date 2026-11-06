@@ -66,6 +66,25 @@ def _migrar_tabla_pedidos():
         pass
 
 
+def _migrar_rol_usuario():
+    """Agrega el rol ADMIN al ENUM de MySQL en bases creadas antes."""
+    inspector = inspect(engine)
+    if "usuario" not in inspector.get_table_names():
+        return
+    columna = next(
+        (c for c in inspector.get_columns("usuario") if c["name"] == "rol"), None
+    )
+    if columna and "ADMIN" in str(columna["type"]):
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "ALTER TABLE `usuario` MODIFY COLUMN `rol` "
+                "ENUM('PANOLERA','PROFESOR','ADMIN') NOT NULL"
+            )
+        )
+
+
 def _crear_usuario_inicial():
     """Crea la cuenta de la pañolera la primera vez que arranca la app."""
     with Session(engine) as session:
@@ -85,6 +104,29 @@ def _crear_usuario_inicial():
         session.commit()
 
 
+def _crear_usuario_admin():
+    """Crea (si falta) la cuenta de administrador con acceso a todo."""
+    usuario = os.getenv("ADMIN_USUARIO", "admin").strip().lower()
+    password = os.getenv("ADMIN_PASSWORD", "123456")
+    nombre = os.getenv("ADMIN_NOMBRE", "Administrador")
+    with Session(engine) as session:
+        existente = session.exec(
+            select(Usuario).where(Usuario.usuario == usuario)
+        ).first()
+        if existente:
+            return
+        session.add(
+            Usuario(
+                usuario=usuario,
+                nombre=nombre,
+                password_hash=hash_password(password),
+                rol=RolUsuario.ADMIN,
+                activo=True,
+            )
+        )
+        session.commit()
+
+
 def init_db():
     with server_engine.connect() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
@@ -93,7 +135,9 @@ def init_db():
     # (Antes se hacía drop_all en cada arranque y se perdían los datos.)
     SQLModel.metadata.create_all(engine)
     _migrar_tabla_pedidos()
+    _migrar_rol_usuario()
     _crear_usuario_inicial()
+    _crear_usuario_admin()
     with Session(engine) as session:
         if not session.exec(select(Herramienta)).first():
             for nombre, categoria in leer_inventario_excel():
